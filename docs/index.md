@@ -1,32 +1,38 @@
-# Buildarr Prowlarr Plugin
+# Buildarr Sonarr Plugin
 
-[![PyPI](https://img.shields.io/pypi/v/buildarr-prowlarr)](https://pypi.org/project/buildarr-prowlarr) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/buildarr-prowlarr)  [![GitHub](https://img.shields.io/github/license/buildarr/buildarr-prowlarr)](https://github.com/buildarr/buildarr-prowlarr/blob/main/LICENSE) ![Pre-commit hooks](https://github.com/buildarr/buildarr-prowlarr/actions/workflows/pre-commit.yml/badge.svg) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![PyPI](https://img.shields.io/pypi/v/buildarr-sonarr)](https://pypi.org/project/buildarr-sonarr) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/buildarr-sonarr)  [![GitHub](https://img.shields.io/github/license/buildarr/buildarr-sonarr)](https://github.com/buildarr/buildarr-sonarr/blob/main/LICENSE) ![Pre-commit hooks](https://github.com/buildarr/buildarr-sonarr/actions/workflows/pre-commit.yml/badge.svg) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-The Buildarr Prowlarr plugin (`buildarr-prowlarr`) is a plugin for Buildarr that adds the capability to configure and manage [prowlarr](http://prowlarr.com) instances.
+The Buildarr Sonarr plugin (`buildarr-sonarr`) is a plugin for Buildarr that adds the capability to configure and manage [Sonarr](http://sonarr.tv) instances.
 
-Prowlarr is a manager/proxy for *Arr application Usenet and Torrent indexers. It handles communication with individual indexers for multiple instances on their behalf from a single client, allowing easier configuration of indexers by only setting them up once, and better management of traffic going to indexers to reduce the risk of running into rate l
+Sonarr is a PVR application which downloads, renames and manages the lifecycle of TV shows in your media library. It is capable of scanning for higher quality versions of your media and automatically upgrading them when a suitable version is available.
+
+Currently, Sonarr V3 is the only supported version. Sonarr V4 support is planned for the future.
 
 ## Installation
 
-When using Buildarr as a [standalone application](https://buildarr.github.io/installation/#standalone-application), the Prowlarr plugin can simply be installed using `pip`:
+From [version 0.4.0](https://buildarr.github.io/release-notes/#v040-2023-03-31) onwards, the Buildarr Sonarr plugin is now an independent package, developed separately from the core Buildarr package.
+
+When using Buildarr as a [standalone application](https://buildarr.github.io/installation/#standalone-application), it can simply be installed using `pip`:
 
 ```bash
-$ pip install buildarr buildarr-prowlarr
+$ pip install buildarr buildarr-sonarr
 ```
 
-When using Buildarr as a [Docker container](https://buildarr.github.io/installation/#docker), you can install the Prowlarr plugin into the container at runtime by setting the `$BUILDARR_INSTALL_PACKAGES` environment variable in the `docker run` command using `--env`/`-e`:
+When using Buildarr as a [Docker container](https://buildarr.github.io/installation/#docker), the Sonarr plugin is still bundled in the official container (`callum027/buildarr`). There is no need to install it separately.
+
+You can upgrade, or pin the version of the plugin to a specific version, within the container by setting the `$BUILDARR_INSTALL_PACKAGES` environment variable in the `docker run` command using `--env`/`-e`:
 
 ```bash
--e BUILDARR_INSTALL_PACKAGES="buildarr-prowlarr"
+-e BUILDARR_INSTALL_PACKAGES="buildarr-sonar==<version>"
 ```
 
-There are plans to bundle the Prowalrr plugin into the official Docker container (`callum027/buildarr`).
+In Buildarr version 0.3.0 and earlier, the Sonarr plugin was vendored within the core Buildarr package. On these versions, it is not necessary to install the Sonarr plugin separately.
 
 ## Quick Start
 
-To use the Prowlarr plugin, create a `prowlarr` block within `buildarr.yml`, and enter the connection information required for the Buildarr instance to connect to the Prowlarr instance you'd like to manage.
+To use the Sonarr plugin, create a `sonarr` block within `buildarr.yml`, and enter the connection information required for the Buildarr instance to connect to the Sonarr instance you'd like to manage.
 
-Buildarr won't modify anything yet since no configuration has been defined, but you are able to test if Buildarr is able to connect to and authenticate with the Prowlarr instance.
+Buildarr won't modify anything yet since no configuration has been defined, but you are able to test if Buildarr is able to connect to and authenticate with the Sonarr instance.
 
 ```yaml
 ---
@@ -34,66 +40,74 @@ Buildarr won't modify anything yet since no configuration has been defined, but 
 buildarr:
   watch_config: true
 
-prowlarr:
-  hostname: "localhost" # Defaults to `prowlarr`, or the instance name for instance-specific configs.
+sonarr:
+  hostname: "localhost" # Defaults to `sonarr`, or the instance name for instance-specific configs.
   port: 8989 # Defaults to 8989.
   protocol: "http" # Defaults to `http`.
   api_key: "..." # Optional. If undefined, auto-fetch (authentication must be disabled).
 ```
 
-Now try a `buildarr run`. If the output is similar to the below output, Buildarr was able to connect to your Prowlarr instance.
+Now try a `buildarr run`. If the output is similar to the below output, Buildarr was able to connect to your Sonarr instance.
 
 ```text
 2023-03-29 20:39:50,856 buildarr:1 buildarr.cli.run [INFO] Buildarr version 0.4.0 (log level: INFO)
 2023-03-29 20:39:50,856 buildarr:1 buildarr.cli.run [INFO] Loading configuration file '/config/buildarr.yml'
 2023-03-29 20:39:50,872 buildarr:1 buildarr.cli.run [INFO] Finished loading configuration file
-2023-03-29 20:39:50,874 buildarr:1 buildarr.cli.run [INFO] Loaded plugins: prowlarr (0.1.0)
+2023-03-29 20:39:50,874 buildarr:1 buildarr.cli.run [INFO] Loaded plugins: sonarr (0.4.0)
 2023-03-29 20:39:50,875 buildarr:1 buildarr.cli.run [INFO] Loading instance configurations
 2023-03-29 20:39:50,877 buildarr:1 buildarr.cli.run [INFO] Finished loading instance configurations
-2023-03-29 20:39:50,877 buildarr:1 buildarr.cli.run [INFO] Running with plugins: prowlarr
+2023-03-29 20:39:50,877 buildarr:1 buildarr.cli.run [INFO] Running with plugins: sonarr
 2023-03-29 20:39:50,877 buildarr:1 buildarr.cli.run [INFO] Resolving instance dependencies
 2023-03-29 20:39:50,877 buildarr:1 buildarr.cli.run [INFO] Finished resolving instance dependencies
 2023-03-29 20:39:50,877 buildarr:1 buildarr.cli.run [INFO] Loading secrets file from '/config/secrets.json'
 2023-03-29 20:39:50,886 buildarr:1 buildarr.cli.run [INFO] Finished loading secrets file
-2023-03-29 20:39:50,886 buildarr:1 buildarr.cli.run [INFO] <prowlarr> (default) Checking secrets
-2023-03-29 20:39:50,912 buildarr:1 buildarr.cli.run [INFO] <prowlarr> (default) Connection test successful using cached secrets
-2023-03-29 20:39:50,912 buildarr:1 buildarr.cli.run [INFO] <prowlarr> (default) Finished checking secrets
+2023-03-29 20:39:50,886 buildarr:1 buildarr.cli.run [INFO] <sonarr> (default) Checking secrets
+2023-03-29 20:39:50,912 buildarr:1 buildarr.cli.run [INFO] <sonarr> (default) Connection test successful using cached secrets
+2023-03-29 20:39:50,912 buildarr:1 buildarr.cli.run [INFO] <sonarr> (default) Finished checking secrets
 2023-03-29 20:39:50,912 buildarr:1 buildarr.cli.run [INFO] Saving updated secrets file to '/config/secrets.json'
 2023-03-29 20:39:50,914 buildarr:1 buildarr.cli.run [INFO] Finished saving updated secrets file
 2023-03-29 20:39:50,914 buildarr:1 buildarr.cli.run [INFO] Updating configuration on remote instances
-2023-03-29 20:39:50,914 buildarr:1 buildarr.cli.run [INFO] <prowlarr> (default) Getting remote configuration
-2023-03-29 20:39:51,406 buildarr:1 buildarr.cli.run [INFO] <prowlarr> (default) Finished getting remote configuration
-2023-03-29 20:39:51,463 buildarr:1 buildarr.cli.run [INFO] <prowlarr> (default) Updating remote configuration
-2023-03-29 20:39:52,019 buildarr:1 buildarr.cli.run [INFO] <prowlarr> (default) Remote configuration is up to date
-2023-03-29 20:39:52,019 buildarr:1 buildarr.cli.run [INFO] <prowlarr> (default) Finished updating remote configuration
+2023-03-29 20:39:50,914 buildarr:1 buildarr.cli.run [INFO] <sonarr> (default) Getting remote configuration
+2023-03-29 20:39:51,406 buildarr:1 buildarr.cli.run [INFO] <sonarr> (default) Finished getting remote configuration
+2023-03-29 20:39:51,463 buildarr:1 buildarr.cli.run [INFO] <sonarr> (default) Updating remote configuration
+2023-03-29 20:39:52,019 buildarr:1 buildarr.cli.run [INFO] <sonarr> (default) Remote configuration is up to date
+2023-03-29 20:39:52,019 buildarr:1 buildarr.cli.run [INFO] <sonarr> (default) Finished updating remote configuration
 2023-03-29 20:39:52,019 buildarr:1 buildarr.cli.run [INFO] Finished updating configuration on remote instances
 ```
 
-## Configuring your Buildarr instance
+## Configuring your Sonarr instance
 
-The following sections cover comprehensive configuration of a Prowlarr instance.
+The following sections cover comprehensive configuration of a Sonarr instance.
 
-Note that these documents do not show how you *should* configure a Prowlarr instance. Rather, they show how you *can* configure a Prowlarr instance the way you want with Buildarr. For more information on how to optimally configure Prowlarr, you can refer to the excellent guides from [WikiArr](https://wiki.servarr.com/prowlarr) and [TRaSH-Guides](https://trash-guides.info/Prowlarr/).
+Note that these documents do not show how you *should* configure a Sonarr instance. Rather, they show how you *can* configure a Sonarr instance the way you want with Buildarr. For more information on how to optimally configure Sonarr, you can refer to the excellent guides from [WikiArr](https://wiki.servarr.com/sonarr) and [TRaSH-Guides](https://trash-guides.info/Sonarr/).
 
-* [Host Configuration](https://buildarr.github.io/plugins/prowlarr/configuration/host)
-* [Indexers](https://buildarr.github.io/plugins/prowlarr/configuration/indexers)
-* [Apps](https://buildarr.github.io/plugins/prowlarr/configuration/apps)
-* [Download Clients](https://buildarr.github.io/plugins/prowlarr/configuration/download-clients)
-* [Notifications](https://buildarr.github.io/plugins/prowlarr/configuration/notifications)
-* [Tags](https://buildarr.github.io/plugins/prowlarr/configuration/tags)
-* [General](https://buildarr.github.io/plugins/prowlarr/configuration/general)
-* [UI](https://buildarr.github.io/plugins/prowlarr/configuration/ui)
+* [Host Configuration](configuration/host.md)
+* [Media Management](configuration/media-management.md)
+* Profiles
+    * [Quality Profiles](configuration/profiles/quality.md)
+    - [Language Profiles](configuration/profiles/language.md)
+    - [Delay Profiles](configuration/profiles/delay.md)
+    - [Release Profiles](configuration/profiles/release.md)
+- [Quality](configuration/quality.md)
+- [Indexers](configuration/indexers.md)
+- [Download Clients](configuration/download-clients.md)
+- [Import Lists](configuration/import-lists.md)
+- [Connect](configuration/connect.md)
+- [Metadata](configuration/metadata.md)
+- [Tags](configuration/tags.md)
+- [General](configuration/general.md)
+- [UI](configuration/ui.md)
 
-## Dumping an existing Prowlarr instance configuration
+## Dumping an existing Sonarr instance configuration
 
-Buildarr is capable of dumping a running Prowlarr instance's configuration.
+Buildarr is capable of dumping a running Sonarr instance's configuration.
 
 ```bash
-$ buildarr prowlarr dump-config http://localhost:8989 > prowlarr.yml
-Prowlarr instance API key: <Paste API key here>
+$ buildarr sonarr dump-config http://localhost:8989 > sonarr.yml
+Sonarr instance API key: <Paste API key here>
 ```
 
-The dumped YAML object can be placed directly under the `prowlarr` configuration block, or used as an [instance-specific configuration](https://buildarr.github.io/configuration/#multiple-instances-of-the-same-type).
+The dumped YAML object can be placed directly under the `sonarr` configuration block, or used as an [instance-specific configuration](https://buildarr.github.io/configuration/#multiple-instances-of-the-same-type).
 
 Most values are explicitly defined in this dumped configuration, ensuring that when used with Buildarr, the configuration will always remain static.
 
