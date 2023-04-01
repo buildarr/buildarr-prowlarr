@@ -13,7 +13,7 @@
 
 
 """
-Sonarr plugin tags settings configuration.
+Prowlarr plugin tags settings configuration.
 """
 
 
@@ -22,22 +22,24 @@ from __future__ import annotations
 from logging import getLogger
 from typing import Dict, List
 
+import prowlarr
+
 from buildarr.types import NonEmptyStr
 from typing_extensions import Self
 
-from ..api import api_get, api_post
-from ..secrets import SonarrSecrets
-from ..types import SonarrConfigBase
+from ...api import prowlarr_api_client
+from ...secrets import ProwlarrSecrets
+from ..types import ProwlarrConfigBase
 
 logger = getLogger(__name__)
 
 
-class SonarrTagsSettingsConfig(SonarrConfigBase):
+class ProwlarrTagsSettings(ProwlarrConfigBase):
     """
-    Tags are used to associate media files with certain resources (e.g. release profiles).
+    Tags are used to associate media files with certain resources (e.g. download clients).
 
     ```yaml
-    sonarr:
+    prowlarr:
       settings:
         tags:
           definitions:
@@ -54,9 +56,9 @@ class SonarrTagsSettingsConfig(SonarrConfigBase):
     Delete tags that are not used by any resource in Buildarr.
 
     Note that tags not being used in Buildarr are not necessarily
-    unused by Sonarr, so be careful about when to use this option.
+    unused by Prowlarr, so be careful about when to use this option.
 
-    Sonarr appears to periodically clean up unused tags,
+    Prowlarr appears to periodically clean up unused tags,
     so in most cases there is no need to enable this option.
     """
 
@@ -65,19 +67,19 @@ class SonarrTagsSettingsConfig(SonarrConfigBase):
     Define tags that are used within Buildarr here.
 
     If they are not defined here, you may get errors resulting from non-existent
-    tags from either Buildarr or Sonarr.
+    tags from either Buildarr or Prowlarr.
     """
 
     @classmethod
-    def from_remote(cls, secrets: SonarrSecrets) -> Self:
-        return cls(
-            definitions=[tag["label"] for tag in api_get(secrets, "/api/v3/tag")],
-        )
+    def from_remote(cls, secrets: ProwlarrSecrets) -> Self:
+        with prowlarr_api_client(secrets=secrets) as api_client:
+            tags = prowlarr.TagApi(api_client).list_tag()
+        return cls(definitions=[tag.label for tag in tags])
 
     def update_remote(
         self,
         tree: str,
-        secrets: SonarrSecrets,
+        secrets: ProwlarrSecrets,
         remote: Self,
         check_unmanaged: bool = False,
     ) -> bool:
@@ -85,15 +87,15 @@ class SonarrTagsSettingsConfig(SonarrConfigBase):
         # Deletes (and empty tag list prints) are done AFTER all other modifications are made.
         # TODO: Implement tag deletions.
         changed = False
-        current_tags: Dict[str, int] = {
-            tag["label"]: tag["id"] for tag in api_get(secrets, "/api/v3/tag")
-        }
-        if self.definitions:
-            for i, tag in enumerate(self.definitions):
-                if tag in current_tags:
-                    logger.debug("%s.definitions[%i]: %s (exists)", tree, i, repr(tag))
-                else:
-                    logger.info("%s.definitions[%i]: %s -> (created)", tree, i, repr(tag))
-                    api_post(secrets, "/api/v3/tag", {"label": tag})
-                    changed = True
+        with prowlarr_api_client(secrets=secrets) as api_client:
+            tag_api = prowlarr.TagApi(api_client)
+            current_tags: Dict[str, int] = {tag.label: tag.id for tag in tag_api.list_tag()}
+            if self.definitions:
+                for i, tag in enumerate(self.definitions):
+                    if tag in current_tags:
+                        logger.debug("%s.definitions[%i]: %s (exists)", tree, i, repr(tag))
+                    else:
+                        logger.info("%s.definitions[%i]: %s -> (created)", tree, i, repr(tag))
+                        tag_api.create_tag(prowlarr.TagResource(label=tag))
+                        changed = True
         return changed

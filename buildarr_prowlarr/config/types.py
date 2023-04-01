@@ -22,7 +22,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from buildarr.config import ConfigBase
-from pydantic import ConstrainedStr
 
 if TYPE_CHECKING:
     from ..secrets import ProwlarrSecrets
@@ -34,12 +33,3 @@ else:
 
     class ProwlarrConfigBase(ConfigBase):
         ...
-
-
-class TraktAuthUser(ConstrainedStr):
-    """
-    Constrained string type to make the Trakt auth user case-insensitive.
-    """
-
-    min_length = 1
-    to_lower = True

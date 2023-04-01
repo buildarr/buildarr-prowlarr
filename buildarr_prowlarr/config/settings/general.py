@@ -13,7 +13,7 @@
 
 
 """
-Sonarr plugin general settings configuration.
+Prowlarr plugin general settings configuration.
 """
 
 
@@ -22,19 +22,21 @@ from __future__ import annotations
 from ipaddress import IPv4Address
 from typing import Any, Dict, List, Literal, Mapping, Optional, Set, Tuple, Union
 
+import prowlarr
+
 from buildarr.config import RemoteMapEntry
 from buildarr.types import BaseEnum, NonEmptyStr, Password, Port
 from pydantic import Field, validator
 from typing_extensions import Self
 
-from ..api import api_get, api_put
-from ..secrets import SonarrSecrets
-from ..types import SonarrConfigBase
+from ...api import prowlarr_api_client
+from ...secrets import ProwlarrSecrets
+from ..types import ProwlarrConfigBase
 
 
 class AuthenticationMethod(BaseEnum):
     """
-    Sonarr authentication method.
+    Prowlarr authentication method.
     """
 
     none = "none"
@@ -62,9 +64,9 @@ class ProxyType(BaseEnum):
     socks5 = "socks5"
 
 
-class SonarrLogLevel(BaseEnum):
+class ProwlarrLogLevel(BaseEnum):
     """
-    Log level of the Sonarr application.
+    Log level of the Prowlarr application.
     """
 
     INFO = "info"
@@ -74,7 +76,7 @@ class SonarrLogLevel(BaseEnum):
 
 class UpdateMechanism(BaseEnum):
     """
-    Sonarr updating mechanism.
+    Prowlarr updating mechanism.
     """
 
     builtin = "builtIn"
@@ -84,9 +86,9 @@ class UpdateMechanism(BaseEnum):
     docker = "docker"
 
 
-class GeneralSettings(SonarrConfigBase):
+class GeneralSettings(ProwlarrConfigBase):
     """
-    Sonarr general settings base class.
+    Prowlarr general settings base class.
     """
 
     _remote_map: List[RemoteMapEntry]
@@ -98,7 +100,7 @@ class GeneralSettings(SonarrConfigBase):
     def _update_remote_attrs(
         self,
         tree: str,
-        secrets: SonarrSecrets,
+        secrets: ProwlarrSecrets,
         remote: Self,
         check_unmanaged: bool = False,
     ) -> Tuple[bool, Dict[str, Any]]:
@@ -113,85 +115,86 @@ class GeneralSettings(SonarrConfigBase):
 
 class HostGeneralSettings(GeneralSettings):
     """
-    Sonarr instance connection and name configuration.
+    Prowlarr instance connection and name configuration.
 
-    Many of these settings configure Sonarr's external connection interface.
+    Many of these settings configure Prowlarr's external connection interface.
     If they are changed, the [settings Buildarr uses to connect](host.md) with this
-    Sonarr instance may need to be updated, so take care when modifying them.
+    Prowlarr instance may need to be updated, so take care when modifying them.
 
-    **Changing any of these settings require a restart of Sonarr to take effect.**
+    **Changing any of these settings require a restart of Prowlarr to take effect.**
     """
 
     # According to docs, IPv6 not supported at this time.
     bind_address: Union[Literal["*"], IPv4Address] = "*"
     """
-    Bind address for Sonarr. Set to an IPv4 address bound to a local interface
+    Bind address for Prowlarr. Set to an IPv4 address bound to a local interface
     or `*` to bind on all interfaces.
 
-    Unless you run Sonarr directly on a host machine (i.e. not via Docker) and
-    want Sonarr to only be available on a specific network or interface,
+    Unless you run Prowlarr directly on a host machine (i.e. not via Docker) and
+    want Prowlarr to only be available on a specific network or interface,
     this generally should be left untouched.
     """
 
-    port: Port = 8989  # type: ignore[assignment]
+    port: Port = 9696  # type: ignore[assignment]
     """
-    Unencrypted (HTTP) listening port for Sonarr.
+    Unencrypted (HTTP) listening port for Prowlarr.
 
-    If Sonarr is being run via Docker in the default bridge mode,
+    If Prowlarr is being run via Docker in the default bridge mode,
     this setting shouldn't be changed.
     Instead, change the external port it is bound to using
-    `--publish <port number>:8989`.
+    `--publish <port number>:9696`.
     """
 
-    ssl_port: Port = 9898  # type: ignore[assignment]
+    ssl_port: Port = 6969  # type: ignore[assignment]
     """
-    Encrypted (HTTPS) listening port for Sonarr.
+    Encrypted (HTTPS) listening port for Prowlarr.
 
-    If Sonarr is being run via Docker in the default bridge mode,
+    If Prowlarr is being run via Docker in the default bridge mode,
     this setting shouldn't be changed.
     Instead, change the external port it is bound to using
-    `--publish <port number>:9898`.
+    `--publish <port number>:6969`.
     """
 
     use_ssl: bool = False
     """
-    Enable the encrypted (HTTPS) listening port in Sonarr.
-    As Sonarr only supports self-signed certificates, it is recommended
-    to put Sonarr behind a HTTPS-terminating reverse proxy such as Nginx, Caddy or Traefik.
+    Enable the encrypted (HTTPS) listening port in Prowlarr.
+
+    As Prowlarr only supports self-signed certificates, it is recommended
+    to put Prowlarr behind a HTTPS-terminating reverse proxy such as Nginx, Caddy or Traefik.
     """
 
     url_base: Optional[str] = None
     """
-    Add a prefix to all Sonarr URLs,
-    e.g. `http://localhost:8989/<url_base>/settings/general`.
+    Add a prefix to all Prowlarr URLs,
+    e.g. `http://localhost:9696/<url_base>/settings/general`.
 
-    Generally used to accommodate reverse proxies where Sonarr
-    is assigned to a subfolder, e.g. `https://example.com/sonarr`.
+    Generally used to accommodate reverse proxies where Prowlarr
+    is assigned to a subfolder, e.g. `https://example.com/prowlarr`.
     """
 
-    instance_name: NonEmptyStr = "Sonarr"  # type: ignore[assignment]
+    instance_name: NonEmptyStr = "Prowlarr"  # type: ignore[assignment]
     """
     Instance name in the browser tab and in syslog.
     """
 
     _remote_map: List[RemoteMapEntry] = [
-        ("bind_address", "bindAddress", {}),
+        ("bind_address", "bind_address", {}),
         ("port", "port", {}),
-        ("ssl_port", "sslPort", {}),
-        ("use_ssl", "enableSsl", {}),
-        ("url_base", "urlBase", {"decoder": lambda v: v or None, "encoder": lambda v: v or ""}),
-        ("instance_name", "instanceName", {}),
+        ("ssl_port", "ssl_port", {}),
+        ("use_ssl", "enable_ssl", {}),
+        ("url_base", "url_base", {"decoder": lambda v: v or None, "encoder": lambda v: v or ""}),
+        ("instance_name", "instance_name", {}),
     ]
 
 
 class SecurityGeneralSettings(GeneralSettings):
     """
-    Sonarr instance security (authentication) settings.
+    Prowlarr instance security (authentication) settings.
     """
 
     authentication: AuthenticationMethod = AuthenticationMethod.none
     """
-    Authentication method for logging into Sonarr.
+    Authentication method for logging into Prowlarr.
     By default, do not require authentication.
 
     Values:
@@ -200,21 +203,21 @@ class SecurityGeneralSettings(GeneralSettings):
     * `basic` - Authentication using HTTP basic auth (browser popup)
     * `form` - Authentication using a login page
 
-    Requires a restart of Sonarr to take effect.
+    Requires a restart of Prowlarr to take effect.
     """
 
     username: Optional[str] = None
     """
     Username for the administrator user. Required if authentication is enabled.
 
-    Requires a restart of Sonarr to take effect.
+    Requires a restart of Prowlarr to take effect.
     """
 
     password: Optional[Password] = None
     """
     Password for the administrator user. Required if authentication is enabled.
 
-    Requires a restart of Sonarr to take effect.
+    Requires a restart of Prowlarr to take effect.
     """
 
     certificate_validation: CertificateValidation = CertificateValidation.enabled
@@ -230,7 +233,7 @@ class SecurityGeneralSettings(GeneralSettings):
     """
 
     _remote_map: List[RemoteMapEntry] = [
-        ("authentication", "authenticationMethod", {}),
+        ("authentication", "authentication_method", {}),
         (
             "username",
             "username",
@@ -240,7 +243,7 @@ class SecurityGeneralSettings(GeneralSettings):
                 # Due to the validator, gets set to `None` if authentication is disabled
                 # on the remote instance.
                 "decoder": lambda v: v or None,
-                # Sonarr isn't too picky about this, but replicate the behaviour of the UI.
+                # Prowlarr isn't too picky about this, but replicate the behaviour of the UI.
                 "encoder": lambda v: v or "",
             },
         ),
@@ -253,11 +256,11 @@ class SecurityGeneralSettings(GeneralSettings):
                 # Due to the validator, gets set to `None` if authentication is disabled
                 # on the remote instance.
                 "decoder": lambda v: v or None,
-                # Sonarr isn't too picky about this, but replicate the behaviour of the UI.
+                # Prowlarr isn't too picky about this, but replicate the behaviour of the UI.
                 "encoder": lambda v: v.get_secret_value() if v else "",
             },
         ),
-        ("certificate_validation", "certificateValidation", {}),
+        ("certificate_validation", "certificate_validation", {}),
     ]
 
     @validator("username", "password")
@@ -274,7 +277,7 @@ class SecurityGeneralSettings(GeneralSettings):
           ensure that the attribute set to a value other than `None`.
 
         This will apply to both the local Buildarr configuration and
-        the remote Sonarr instance configuration.
+        the remote Prowlarr instance configuration.
 
         Args:
             value (Optional[str]): Value to validate
@@ -295,7 +298,7 @@ class SecurityGeneralSettings(GeneralSettings):
 
 class ProxyGeneralSettings(GeneralSettings):
     """
-    Proxy configuration for Sonarr.
+    Proxy configuration for Prowlarr.
     """
 
     enable: bool = False
@@ -350,22 +353,22 @@ class ProxyGeneralSettings(GeneralSettings):
     """
 
     _remote_map: List[RemoteMapEntry] = [
-        ("enable", "proxyEnabled", {}),
-        ("proxy_type", "proxyType", {}),
+        ("enable", "proxy_enabled", {}),
+        ("proxy_type", "proxy_type", {}),
         (
             "hostname",
-            "proxyHostname",
+            "proxy_hostname",
             {"decoder": lambda v: v or None, "encoder": lambda v: v or ""},
         ),
-        ("port", "proxyPort", {}),
+        ("port", "proxy_port", {}),
         (
             "username",
-            "proxyUsername",
+            "proxy_username",
             {"decoder": lambda v: v or None, "encoder": lambda v: v or ""},
         ),
         (
             "password",
-            "proxyPassword",
+            "proxy_password",
             {
                 "decoder": lambda v: v or None,
                 "encoder": lambda v: v.get_secret_value() if v else "",
@@ -373,7 +376,7 @@ class ProxyGeneralSettings(GeneralSettings):
         ),
         (
             "ignored_addresses",
-            "proxyBypassFilter",
+            "proxy_bypass_filter",
             {
                 "decoder": lambda v: (
                     set(addr.strip() for addr in v.split(",")) if v and v.strip() else []
@@ -381,16 +384,16 @@ class ProxyGeneralSettings(GeneralSettings):
                 "encoder": lambda v: ",".join(sorted(v)) if v else "",
             },
         ),
-        ("bypass_proxy_for_local_addresses", "proxyBypassLocalAddresses", {}),
+        ("bypass_proxy_for_local_addresses", "proxy_bypass_local_addresses", {}),
     ]
 
 
 class LoggingGeneralSettings(GeneralSettings):
     """
-    Logging configuration for the Sonarr application.
+    Logging configuration for the Prowlarr application.
     """
 
-    log_level: SonarrLogLevel = SonarrLogLevel.INFO
+    log_level: ProwlarrLogLevel = ProwlarrLogLevel.INFO
     """
     Verbosity of logging output.
 
@@ -401,31 +404,31 @@ class LoggingGeneralSettings(GeneralSettings):
     * `TRACE` - Trace diagnostics log output
     """
 
-    _remote_map: List[RemoteMapEntry] = [("log_level", "logLevel", {})]
+    _remote_map: List[RemoteMapEntry] = [("log_level", "log_level", {})]
 
 
 class AnalyticsGeneralSettings(GeneralSettings):
     """
-    Configuration of analytics and telemetry from within Sonarr.
+    Configuration of analytics and telemetry from within Prowlarr.
     """
 
     send_anonymous_usage_data: bool = True
     """
-    Send anonymous usage and error information to Sonarr's servers.
+    Send anonymous usage and error information to Prowlarr's servers.
 
-    This includes information on your browser, which Sonarr Web UI pages you use,
+    This includes information on your browser, which Prowlarr Web UI pages you use,
     error reporting and OS/runtime versions. This information is reportedly used
     to prioritise features and bug fixes.
 
-    Requires a restart of Sonarr to take effect.
+    Requires a restart of Prowlarr to take effect.
     """
 
-    _remote_map: List[RemoteMapEntry] = [("send_anonymous_usage_data", "analyticsEnabled", {})]
+    _remote_map: List[RemoteMapEntry] = [("send_anonymous_usage_data", "analytics_enabled", {})]
 
 
 class UpdatesGeneralSettings(GeneralSettings):
     """
-    Settings for updating Sonarr.
+    Settings for updating Prowlarr.
     """
 
     branch: NonEmptyStr = "main"  # type: ignore[assignment]
@@ -433,7 +436,7 @@ class UpdatesGeneralSettings(GeneralSettings):
     Branch used by the external update mechanism.
     Changing this value has no effect on Docker installations.
 
-    If unsure, leave this undefined in Buildarr and use the value already set in Sonarr.
+    If unsure, leave this undefined in Buildarr and use the value already set in Prowlarr.
     """
 
     automatic: bool = False
@@ -448,12 +451,12 @@ class UpdatesGeneralSettings(GeneralSettings):
     # script_path should be absolute only
     mechanism: UpdateMechanism = UpdateMechanism.docker
     """
-    Set the mechanism for updating Sonarr.
+    Set the mechanism for updating Prowlarr.
     Must be set to `docker` on Docker installations.
 
     Values:
 
-    * `builtin` - Sonarr built-in updater mechanism
+    * `builtin` - Prowlarr built-in updater mechanism
     * `script` - Use the configured update script
     * `external` - External update mechanism
     * `apt` - Debian APT package
@@ -471,11 +474,11 @@ class UpdatesGeneralSettings(GeneralSettings):
 
     _remote_map: List[RemoteMapEntry] = [
         ("branch", "branch", {}),
-        ("automatic", "updateAutomatically", {}),
-        ("mechanism", "updateMechanism", {}),
+        ("automatic", "update_automatically", {}),
+        ("mechanism", "update_mechanism", {}),
         (
             "script_path",
-            "updateScriptPath",
+            "update_script_path",
             {"decoder": lambda v: v or None, "encoder": lambda v: v or ""},
         ),
     ]
@@ -483,14 +486,14 @@ class UpdatesGeneralSettings(GeneralSettings):
 
 class BackupGeneralSettings(GeneralSettings):
     """
-    Settings for Sonarr automatic backups.
+    Settings for Prowlarr automatic backups.
     """
 
     folder: NonEmptyStr = "Backups"  # type: ignore[assignment]
     """
-    Folder to backup Sonarr data to.
+    Folder to backup Prowlarr data to.
 
-    Relative paths will be under Sonarr's AppData directory.
+    Relative paths will be under Prowlarr's AppData directory.
     """
 
     interval: int = Field(7, ge=1, le=7)  # days
@@ -509,15 +512,15 @@ class BackupGeneralSettings(GeneralSettings):
     """
 
     _remote_map: List[RemoteMapEntry] = [
-        ("folder", "backupFolder", {}),
-        ("interval", "backupInterval", {}),
-        ("retention", "backupRetention", {}),
+        ("folder", "backup_folder", {}),
+        ("interval", "backup_interval", {}),
+        ("retention", "backup_retention", {}),
     ]
 
 
-class SonarrGeneralSettingsConfig(SonarrConfigBase):
+class ProwlarrGeneralSettings(ProwlarrConfigBase):
     """
-    Sonarr general settings.
+    Prowlarr general settings.
     """
 
     host: HostGeneralSettings = HostGeneralSettings()
@@ -529,22 +532,23 @@ class SonarrGeneralSettingsConfig(SonarrConfigBase):
     backup: BackupGeneralSettings = BackupGeneralSettings()
 
     @classmethod
-    def from_remote(cls, secrets: SonarrSecrets) -> Self:
-        settings = api_get(secrets, "/api/v3/config/host")
+    def from_remote(cls, secrets: ProwlarrSecrets) -> Self:
+        with prowlarr_api_client(secrets=secrets) as api_client:
+            remote_attrs = prowlarr.HostConfigApi(api_client).get_host_config().dict()
         return cls(
-            host=HostGeneralSettings._from_remote(settings),
-            security=SecurityGeneralSettings._from_remote(settings),
-            proxy=ProxyGeneralSettings._from_remote(settings),
-            logging=LoggingGeneralSettings._from_remote(settings),
-            analytics=AnalyticsGeneralSettings._from_remote(settings),
-            updates=UpdatesGeneralSettings._from_remote(settings),
-            backup=BackupGeneralSettings._from_remote(settings),
+            host=HostGeneralSettings._from_remote(remote_attrs),
+            security=SecurityGeneralSettings._from_remote(remote_attrs),
+            proxy=ProxyGeneralSettings._from_remote(remote_attrs),
+            logging=LoggingGeneralSettings._from_remote(remote_attrs),
+            analytics=AnalyticsGeneralSettings._from_remote(remote_attrs),
+            updates=UpdatesGeneralSettings._from_remote(remote_attrs),
+            backup=BackupGeneralSettings._from_remote(remote_attrs),
         )
 
     def update_remote(
         self,
         tree: str,
-        secrets: SonarrSecrets,
+        secrets: ProwlarrSecrets,
         remote: Self,
         check_unmanaged: bool = False,
     ) -> bool:
@@ -601,22 +605,25 @@ class SonarrGeneralSettingsConfig(SonarrConfigBase):
                 backup_updated,
             ],
         ):
-            remote_config = api_get(secrets, "/api/v3/config/host")
-            api_put(
-                secrets,
-                f"/api/v3/config/host/{remote_config['id']}",
-                {
-                    # There are some undocumented values that are not
-                    # set by Buildarr. Pass those through unmodified.
-                    **remote_config,
-                    **host_attrs,
-                    **security_attrs,
-                    **proxy_attrs,
-                    **logging_attrs,
-                    **analytics_attrs,
-                    **updates_attrs,
-                    **backup_attrs,
-                },
-            )
+            with prowlarr_api_client(secrets=secrets) as api_client:
+                host_config_api = prowlarr.HostConfigApi(api_client)
+                remote_attrs = host_config_api.get_host_config().dict()
+                host_config_api.update_host_config(
+                    id=str(remote_attrs["id"]),
+                    host_config_resource=prowlarr.HostConfigResource(
+                        **{
+                            # There are some undocumented values that are not
+                            # set by Buildarr. Pass those through unmodified.
+                            **remote_attrs,
+                            **host_attrs,
+                            **security_attrs,
+                            **proxy_attrs,
+                            **logging_attrs,
+                            **analytics_attrs,
+                            **updates_attrs,
+                            **backup_attrs,
+                        },
+                    ),
+                )
             return True
         return False

@@ -13,25 +13,25 @@
 
 
 """
-Sonarr plugin connect settings configuration.
+Prowlarr plugin notification connection settings configuration.
 """
 
 
 from __future__ import annotations
 
-from datetime import datetime
 from logging import getLogger
 from typing import Any, Dict, List, Literal, Mapping, Optional, Set, Tuple, Type, Union
+
+import prowlarr
 
 from buildarr.config import RemoteMapEntry
 from buildarr.types import BaseEnum, BaseIntEnum, NonEmptyStr, Password, Port
 from pydantic import AnyHttpUrl, ConstrainedInt, Field, NameEmail, SecretStr
 from typing_extensions import Annotated, Self
 
-from ..api import api_delete, api_get, api_post, api_put
-from ..secrets import SonarrSecrets
-from ..types import SonarrConfigBase, TraktAuthUser
-from .util import trakt_expires_encoder
+from ...api import prowlarr_api_client
+from ...secrets import ProwlarrSecrets
+from ..types import ProwlarrConfigBase
 
 logger = getLogger(__name__)
 
@@ -137,17 +137,17 @@ class WebhookMethod(BaseEnum):
     PUT = 2
 
 
-class NotificationTriggers(SonarrConfigBase):
+class NotificationTriggers(ProwlarrConfigBase):
     """
     Connections are configured using the following syntax.
 
     ```yaml
-    sonarr:
+    prowlarr:
       settings:
-        connect:
+        notifications:
           delete_unmanaged: false # Optional
           definitions:
-            Email: # Name of connection in Sonarr.
+            Email: # Name of notification connection in Prowlarr.
               type: "email" # Required
               notification_triggers: # When to send notifications.
                 on_grab: true
@@ -166,9 +166,9 @@ class NotificationTriggers(SonarrConfigBase):
               server: "smtp.example.com"
               port: 465
               use_encryption: true
-              username: "sonarr"
+              username: "prowlarr"
               password: "fake-password"
-              from_address: "sonarr@example.com"
+              from_address: "prowlarr@example.com"
               recipient_addresses:
                 - "admin@example.com"
             # Add additional connections here.
@@ -191,41 +191,6 @@ class NotificationTriggers(SonarrConfigBase):
     check the documentation the specific connection type for more information.
     """
 
-    on_grab: bool = False
-    """
-    Be notified when episodes are available for download and has been sent to a download client.
-    """
-
-    on_import: bool = False
-    """
-    Be notified when episodes are successfully imported. (Formerly known as On Download)
-    """
-
-    on_upgrade: bool = False
-    """
-    Be notified when episodes are upgraded to a better quality.
-    """
-
-    on_rename: bool = False
-    """
-    Be notified when episodes are renamed.
-    """
-
-    on_series_delete: bool = False
-    """
-    Be notified when series are deleted.
-    """
-
-    on_episode_file_delete: bool = False
-    """
-    Be notified when episodes files are deleted.
-    """
-
-    on_episode_file_delete_for_upgrade: bool = False
-    """
-    Be notified when episode files are deleted for upgrades.
-    """
-
     on_health_issue: bool = False
     """
     Be notified on health check failures.
@@ -240,26 +205,19 @@ class NotificationTriggers(SonarrConfigBase):
 
     on_application_update: bool = False
     """
-    Be notified when Sonarr gets updated to a new version.
+    Be notified when Prowlarr gets updated to a new version.
     """
 
     _remote_map: List[RemoteMapEntry] = [
-        ("on_grab", "onGrab", {}),
-        ("on_import", "onDownload", {}),
-        ("on_upgrade", "onUpgrade", {}),
-        ("on_rename", "onRename", {}),
-        ("on_series_delete", "onSeriesDelete", {}),
-        ("on_episode_file_delete", "onEpisodeFileDelete", {}),
-        ("on_episode_file_delete_for_upgrade", "onEpisodeFileDeleteForUpgrade", {}),
-        ("on_health_issue", "onHealthIssue", {}),
-        ("include_health_warnings", "includeHealthWarnings", {}),
-        ("on_application_update", "onApplicationUpdate", {}),
+        ("on_health_issue", "on_health_issue", {}),
+        ("include_health_warnings", "include_health_warnings", {}),
+        ("on_application_update", "on_application_update", {}),
     ]
 
 
-class Connection(SonarrConfigBase):
+class Connection(ProwlarrConfigBase):
     """
-    Base class for a Sonarr connection.
+    Base class for a Prowlarr notification connection.
     """
 
     notification_triggers: NotificationTriggers = NotificationTriggers()
@@ -269,7 +227,7 @@ class Connection(SonarrConfigBase):
 
     tags: List[NonEmptyStr] = []
     """
-    Sonarr tags to associate this connection with.
+    Prowlarr tags to associate this connection with.
     """
 
     _implementation_name: str
@@ -313,33 +271,33 @@ class Connection(SonarrConfigBase):
     def _create_remote(
         self,
         tree: str,
-        secrets: SonarrSecrets,
+        secrets: ProwlarrSecrets,
         tag_ids: Mapping[str, int],
         connection_name: str,
     ) -> None:
-        api_post(
-            secrets,
-            "/api/v3/notification",
-            {
-                "name": connection_name,
-                "implementation": self._implementation,
-                "implementationName": self._implementation_name,
-                "configContract": self._config_contract,
-                **self.notification_triggers.get_create_remote_attrs(
-                    tree=f"{tree}.notification_triggers",
-                    remote_map=self.notification_triggers._remote_map,
-                ),
-                **self.get_create_remote_attrs(
-                    tree=tree,
-                    remote_map=self._get_base_remote_map(tag_ids) + self._remote_map,
-                ),
-            },
-        )
+        remote_attrs = {
+            "name": connection_name,
+            "implementation": self._implementation,
+            "implementation_name": self._implementation_name,
+            "config_contract": self._config_contract,
+            **self.notification_triggers.get_create_remote_attrs(
+                tree=f"{tree}.notification_triggers",
+                remote_map=self.notification_triggers._remote_map,
+            ),
+            **self.get_create_remote_attrs(
+                tree=tree,
+                remote_map=self._get_base_remote_map(tag_ids) + self._remote_map,
+            ),
+        }
+        with prowlarr_api_client(secrets=secrets) as api_client:
+            prowlarr.NotificationApi(api_client).create_notification(
+                notification_resource=prowlarr.NotificationResource(**remote_attrs),
+            )
 
     def _update_remote(
         self,
         tree: str,
-        secrets: SonarrSecrets,
+        secrets: ProwlarrSecrets,
         remote: Self,
         tag_ids: Mapping[str, int],
         connection_id: int,
@@ -352,34 +310,35 @@ class Connection(SonarrConfigBase):
             tree=tree,
             remote=remote.notification_triggers,
             remote_map=self.notification_triggers._remote_map,
-            # TODO: check if check_unmanaged and/or set_unchanged are required (probably are)
+            set_unchanged=True,
         )
         base_updated, base_remote_attrs = self.get_update_remote_attrs(
             tree=tree,
             remote=remote,
             remote_map=self._get_base_remote_map(tag_ids) + self._remote_map,
-            # TODO: check if check_unmanaged and/or set_unchanged are required (probably are)
+            set_unchanged=True,
         )
         if triggers_updated or base_updated:
-            api_put(
-                secrets,
-                f"/api/v3/notification/{connection_id}",
-                {
-                    "id": connection_id,
-                    "name": connection_name,
-                    "implementation": self._implementation,
-                    "implementationName": self._implementation_name,
-                    "configContract": self._config_contract,
-                    **triggers_remote_attrs,
-                    **base_remote_attrs,
-                },
-            )
+            with prowlarr_api_client(secrets=secrets) as api_client:
+                prowlarr.NotificationApi(api_client).update_notification(
+                    id=connection_id,
+                    notification_resource=prowlarr.NotificationResource(
+                        id=connection_id,
+                        name=connection_name,
+                        implementation=self._implementation,
+                        implementation_name=self._implementation_name,
+                        config_contract=self._config_contract,
+                        **triggers_remote_attrs,
+                        **base_remote_attrs,
+                    ),
+                )
             return True
         return False
 
-    def _delete_remote(self, tree: str, secrets: SonarrSecrets, connection_id: int) -> None:
+    def _delete_remote(self, tree: str, secrets: ProwlarrSecrets, connection_id: int) -> None:
         logger.info("%s: (...) -> (deleted)", tree)
-        api_delete(secrets, f"/api/v3/notification/{connection_id}")
+        with prowlarr_api_client(secrets=secrets) as api_client:
+            prowlarr.NotificationApi(api_client).delete_notification(id=connection_id)
 
 
 class BoxcarConnection(Connection):
@@ -407,7 +366,7 @@ class BoxcarConnection(Connection):
 
 class CustomscriptConnection(Connection):
     """
-    Execute a local script on the Sonarr instance when events occur.
+    Execute a local script on the Prowlarr instance when events occur.
 
     Supported notification triggers: All
     """
@@ -644,7 +603,7 @@ class EmailConnection(Connection):
     Email address to send the mail as.
 
     RFC-5322 formatted mailbox addresses are also supported,
-    e.g. `Sonarr Notifications <sonarr@example.com>`.
+    e.g. `Prowlarr Notifications <prowlarr@example.com>`.
     """
 
     recipient_addresses: Annotated[List[NameEmail], Field(min_items=1, unique_items=True)]
@@ -677,61 +636,6 @@ class EmailConnection(Connection):
         ("recipient_addresses", "to", {"is_field": True}),
         ("cc_addresses", "cc", {"is_field": True}),
         ("bcc_addresses", "bcc", {"is_field": True}),
-    ]
-
-
-class EmbyConnection(Connection):
-    """
-    Send media update and health alert notifications to an Emby server.
-
-    Supported notification triggers: All
-    """
-
-    type: Literal["emby"] = "emby"
-    """
-    Type value associated with this kind of connection.
-    """
-
-    host: NonEmptyStr
-    """
-    Emby server hostname or IP address.
-    """
-
-    port: Port = 8096  # type: ignore[assignment]
-    """
-    Emby server port.
-    """
-
-    use_ssl: bool = False
-    """
-    Use HTTPS to connect to Emby, instead of HTTP.
-    """
-
-    api_key: Password
-    """
-    API key to authenticate with Emby.
-    """
-
-    send_notifications: bool = False
-    """
-    Have MediaBrowser send notifications to configured providers.
-    """
-
-    update_library: bool = False
-    """
-    Update the Emby library on import, rename, or delete.
-    """
-
-    _implementation_name: str = "Emby"
-    _implementation: str = "MediaBrowser"
-    _config_contract: str = "MediaBrowserSettings"
-    _remote_map: List[RemoteMapEntry] = [
-        ("host", "host", {"is_field": True}),
-        ("port", "port", {"is_field": True}),
-        ("use_ssl", "useSsl", {"is_field": True}),
-        ("api_key", "apiKey", {"is_field": True}),
-        ("send_notifications", "notify", {"is_field": True}),
-        ("update_library", "updateLibrary", {"is_field": True}),
     ]
 
 
@@ -796,7 +700,7 @@ class JoinConnection(Connection):
     API key to use to authenticate with Join.
     """
 
-    # Deprecated, only uncomment if absolutely required by Sonarr
+    # Deprecated, only uncomment if absolutely required by Prowlarr
     # device_ids: Set[int] = set()
 
     device_names: Set[NonEmptyStr] = set()
@@ -824,7 +728,7 @@ class JoinConnection(Connection):
     _config_contract: str = "JoinSettings"
     _remote_map: List[RemoteMapEntry] = [
         ("api_key", "apiKey", {"is_field": True}),
-        ("device_names", "deviceNames", {"is_field": True}),
+        # ("device_ids", "deviceIds", {"is_field": True}),
         (
             "device_names",
             "deviceNames",
@@ -840,324 +744,34 @@ class JoinConnection(Connection):
     ]
 
 
-class KodiConnection(Connection):
+class NotifiarrConnection(Connection):
     """
-    Send media update and health alert notifications to a Kodi (XBMC) instance.
+    Send media update and health alert emails via the Notifiarr notification service.
 
     Supported notification triggers: All
     """
 
-    type: Literal["kodi", "xbmc"] = "kodi"
-    """
-    Type values associated with this kind of connection. (Use either one)
-    """
-
-    host: NonEmptyStr
-    """
-    Kodi hostname or IP address.
-    """
-
-    port: Port = 8080  # type: ignore[assignment]
-    """
-    Kodi API port.
-    """
-
-    use_ssl: bool = False
-    """
-    Connect to Kodi over HTTPS instead of HTTP.
-    """
-
-    username: NonEmptyStr
-    """
-    Username to use to login to Kodi.
-    """
-
-    password: Password
-    """
-    Password to use to login to Kodi.
-    """
-
-    gui_notification: bool = False
-    """
-    Enable showing notifications from Sonarr in the Kodi GUI.
-    """
-
-    display_time: int = Field(5, ge=0)  # seconds
-    """
-    How long the notification will be displayed for (in seconds).
-    """
-
-    update_library: bool = False
-    """
-    Update the Kodi library on import/rename.
-    """
-
-    clean_library: bool = False
-    """
-    Clean the Kodi library after update.
-    """
-
-    always_update: bool = False
-    """
-    Update the Kodi library even when a video is playing.
-    """
-
-    _implementation_name: str = "Kodi"
-    _implementation: str = "Xbmc"
-    _config_contract: str = "XbmcSettings"
-    _remote_map: List[RemoteMapEntry] = [
-        ("host", "host", {"is_field": True}),
-        ("port", "port", {"is_field": True}),
-        ("use_ssl", "useSsl", {"is_field": True}),
-        ("username", "username", {"is_field": True}),
-        ("password", "password", {"is_field": True}),
-        ("gui_notification", "notify", {"is_field": True}),
-        ("display_time", "displayTime", {"is_field": True}),
-        ("update_library", "updateLibrary", {"is_field": True}),
-        ("clean_library", "cleanLibrary", {"is_field": True}),
-        ("always_update", "alwaysUpdate", {"is_field": True}),
-    ]
-
-
-class MailgunConnection(Connection):
-    """
-    Send media update and health alert emails via the Mailgun delivery service.
-
-    Supported notification triggers: All except `on_rename`
-    """
-
-    type: Literal["mailgun"] = "mailgun"
+    type: Literal["notifiarr"] = "notifiarr"
     """
     Type value associated with this kind of connection.
     """
 
     api_key: Password
     """
-    API key to use to authenticate with Mailgun.
+    API key to use to authenticate with Notifiarr.
     """
 
-    use_eu_endpoint: bool = False
-    """
-    Send mail via the EU endpoint instead of the US one.
-    """
-
-    from_address: NameEmail
-    """
-    Email address to send the mail as.
-
-    RFC-5322 formatted mailbox addresses are also supported,
-    e.g. `Sonarr Notifications <sonarr@example.com>`.
-    """
-
-    sender_domain: NonEmptyStr
-    """
-    The domain from which the mail will be sent.
-    """
-
-    recipient_addresses: Annotated[List[NameEmail], Field(min_items=1, unique_items=True)]
-    """
-    The recipient email addresses of the notification mail.
-
-    At least one recipient address is required.
-    """
-
-    _implementation: str = "Mailgun"
-    _implementation_name: str = "MailGun"
-    _config_contract: str = "MailgunSettings"
-    _remote_map: List[RemoteMapEntry] = [
-        ("api_key", "apiKey", {"is_field": True}),
-        ("use_eu_endpoint", "useEuEndpoint", {"is_field": True}),
-        ("from_address", "from", {"is_field": True}),
-        ("sender_domain", "senderDomain", {"is_field": True}),
-        ("recipient_addresses", "recipients", {"is_field": True}),
-    ]
-
-
-class PlexHomeTheaterConnection(Connection):
-    """
-    Send media update notifications to a Plex Home Theater instance.
-
-    Supported notification triggers: `on_grab`, `on_import`, `on_upgrade` **only**
-    """
-
-    type: Literal["plex-home-theater"] = "plex-home-theater"
-    """
-    Type value associated with this kind of connection.
-    """
-
-    host: NonEmptyStr
-    """
-    Plex Home Theater hostname or IP address.
-    """
-
-    port: Port = 3005  # type: ignore[assignment]
-    """
-    Plex Home Theater API port.
-    """
-
-    use_ssl: bool = False
-    """
-    Connect to Plex Home Theater over HTTPS instead of HTTP.
-    """
-
-    username: NonEmptyStr
-    """
-    Username to use to login to Plex Home Theater.
-    """
-
-    password: Password
-    """
-    Password to use to login to Plex Home Theater.
-    """
-
-    gui_notification: bool = False
-    """
-    Enable showing notifications from Sonarr in the Plex Home Theater GUI.
-    """
-
-    display_time: int = Field(5, ge=0)  # seconds
-    """
-    How long the notification will be displayed for (in seconds).
-    """
-
-    update_library: bool = False
-    """
-    Update the Plex Home Theater library on import/rename.
-    """
-
-    clean_library: bool = False
-    """
-    Clean the Plex Home Theater library after update.
-    """
-
-    always_update: bool = False
-    """
-    Update the Plex Home THeater library even when a video is playing.
-    """
-
-    _implementation_name: str = "Plex Home Theater"
-    _implementation: str = "PlexHomeTheater"
-    _config_contract: str = "PlexHomeTheaterSettings"
-    _remote_map: List[RemoteMapEntry] = [
-        ("host", "host", {"is_field": True}),
-        ("port", "port", {"is_field": True}),
-        ("use_ssl", "useSsl", {"is_field": True}),
-        ("username", "username", {"is_field": True}),
-        ("password", "password", {"is_field": True}),
-        ("gui_notification", "notify", {"is_field": True}),
-        ("display_time", "displayTime", {"is_field": True}),
-        ("update_library", "updateLibrary", {"is_field": True}),
-        ("clean_library", "cleanLibrary", {"is_field": True}),
-        ("always_update", "alwaysUpdate", {"is_field": True}),
-    ]
-
-
-class PlexMediaCenterConnection(Connection):
-    """
-    Send media update notifications to a Plex Media Center instance.
-
-    Supported notification triggers: `on_grab`, `on_import`, `on_upgrade` **only**
-    """
-
-    type: Literal["plex-media-center"] = "plex-media-center"
-    """
-    Type value associated with this kind of connection.
-    """
-
-    host: NonEmptyStr
-    """
-    Plex Media Center hostname or IP address.
-    """
-
-    port: Port = 3000  # type: ignore[assignment]
-    """
-    Plex Media Center API port.
-    """
-
-    username: NonEmptyStr
-    """
-    Username to use to login to Plex Media Center.
-    """
-
-    password: Password
-    """
-    Password to use to login to Plex Media Center.
-    """
-
-    _implementation_name: str = "Plex Media Center"
-    _implementation: str = "PlexClient"
-    _config_contract: str = "PlexClientSettings"
-    _remote_map: List[RemoteMapEntry] = [
-        ("host", "host", {"is_field": True}),
-        ("port", "port", {"is_field": True}),
-        ("username", "username", {"is_field": True}),
-        ("password", "password", {"is_field": True}),
-    ]
-
-
-class PlexMediaServerConnection(Connection):
-    """
-    Send media update notifications to a Plex Media Server instance.
-
-    Supported notification triggers: All except `on_grab`, `on_health_issue`
-    and `on_application_update`
-    """
-
-    type: Literal["plex-media-server"] = "plex-media-server"
-    """
-    Type value associated with this kind of connection.
-    """
-
-    host: NonEmptyStr
-    """
-    Plex Media Server hostname or IP address.
-    """
-
-    port: Port = 32400  # type: ignore[assignment]
-    """
-    Plex Media Server API port.
-    """
-
-    use_ssl: bool = False
-    """
-    Connect to Plex Media Server over HTTPS instead of HTTP.
-    """
-
-    auth_token: Password
-    """
-    Plex authentication token.
-
-    If unsure on where to find this token,
-    [follow this guide from Plex.tv][PATK].
-    [PATK]: https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token
-    """
-
-    # TODO: Determine how this should be handled.
-    # I think as long as auth_token is specified, there should be no problems.
-    # sign_in: Literal["startOAuth"] = "startOAuth"
-
-    update_library: bool = True
-    """
-    Update the Plex Media Server library on import, rename or delete.
-    """
-
-    _implementation_name: str = "Plex Media Server"
-    _implementation: str = "PlexServer"
-    _config_contract: str = "PlexServerSettings"
-    _remote_map: List[RemoteMapEntry] = [
-        ("host", "host", {"is_field": True}),
-        ("port", "port", {"is_field": True}),
-        ("use_ssl", "useSsl", {"is_field": True}),
-        ("auth_token", "authToken", {"is_field": True}),
-        ("update_library", "updateLibrary", {"is_field": True}),
-    ]
+    _implementation: str = "Notifiarr"
+    _implementation_name: str = "Notifiarr"
+    _config_contract: str = "NotifiarrSettings"
+    _remote_map: List[RemoteMapEntry] = [("api_key", "apiKey", {"is_field": True})]
 
 
 class ProwlConnection(Connection):
     """
     Send media update and health alert push notifications to a Prowl client.
 
-    Supported notification triggers: All except `on_rename`
+    Supported notification triggers: All
     """
 
     type: Literal["prowl"] = "prowl"
@@ -1263,7 +877,7 @@ class PushoverConnection(Connection):
 
     api_key: Annotated[SecretStr, Field(min_length=30, max_length=30)]
     """
-    API key assigned to Sonarr in Pushover.
+    API key assigned to Prowlarr in Pushover.
     """
 
     devices: Set[NonEmptyStr] = set()
@@ -1349,7 +963,7 @@ class SendgridConnection(Connection):
     Email address to send the mail as.
 
     RFC-5322 formatted mailbox addresses are also supported,
-    e.g. `Sonarr Notifications <sonarr@example.com>`.
+    e.g. `Prowlarr Notifications <prowlarr@example.com>`.
     """
 
     recipient_addresses: Annotated[List[NameEmail], Field(min_items=1, unique_items=True)]
@@ -1422,30 +1036,6 @@ class SlackConnection(Connection):
     ]
 
 
-class SynologyIndexerConnection(Connection):
-    """
-    Send media update notifications to the local Synology Indexer.
-
-    Supported notification triggers: All except `on_grab`, `on_health_issue`
-    and `on_application_update`
-    """
-
-    type: Literal["synology-indexer"] = "synology-indexer"
-    """
-    Type value associated with this kind of connection.
-    """
-
-    update_library: bool = True
-    """
-    Update the library on media import/rename/delete.
-    """
-
-    _implementation_name: str = "Synology Indexer"
-    _implementation: str = "SynologyIndexer"
-    _config_contract: str = "SynologyIndexerSettings"
-    _remote_map: List[RemoteMapEntry] = [("update_library", "updateLibrary", {"is_field": True})]
-
-
 class TelegramConnection(Connection):
     """
     Send media update and health alert messages to a Telegram chat room.
@@ -1460,7 +1050,7 @@ class TelegramConnection(Connection):
 
     bot_token: Password
     """
-    The bot token assigned to the Sonarr instance.
+    The bot token assigned to the Prowlarr instance.
     """
 
     chat_id: NonEmptyStr
@@ -1482,65 +1072,6 @@ class TelegramConnection(Connection):
         ("bot_token", "botToken", {"is_field": True}),
         ("chat_id", "chatId", {"is_field": True}),
         ("send_silently", "sendSilently", {"is_field": True}),
-    ]
-
-
-class TraktConnection(Connection):
-    """
-    Send media update and health alert messages to the Trakt media tracker.
-
-    !!! note
-
-        Sonarr directly authenticates with Trakt to generate tokens for it to use.
-        At the moment, the easiest way to generate the tokens for Buildarr
-        is to do it using the GUI within Sonarr, and use the following
-        shell command to retrieve the generated configuration.
-
-        ```bash
-        $ curl -X "GET" "<sonarr-url>/api/v3/notification" -H "X-Api-Key: <api-key>"
-        ```
-
-    Supported notification triggers: All except `on_grab`, `on_rename`,
-    `on_health_issue` and `on_application_update`
-    """
-
-    # FIXME: Determine easier procedure for getting access tokens and test.
-
-    type: Literal["trakt"] = "trakt"
-    """
-    Type value associated with this kind of connection.
-    """
-
-    access_token: Password
-    """
-    Access token for Sonarr from Trakt.
-    """
-
-    refresh_token: Password
-    """
-    Refresh token for Sonarr from Trakt.
-    """
-
-    expires: datetime
-    """
-    Expiry date-time of the access token, preferably in ISO-8601 format and in UTC.
-
-    Example: `2023-05-10T15:34:08.117451Z`
-    """
-
-    auth_user: TraktAuthUser
-    """
-    The username being authenticated in Trakt.
-    """
-
-    _implementation_name: str = "Trakt"
-    _implementation: str = "Trakt"
-    _config_contract: str = "TraktSettings"
-    _remote_map: List[RemoteMapEntry] = [
-        ("access_token", "accessToken", {"is_field": True}),
-        ("refresh_token", "refreshToken", {"is_field": True}),
-        ("expires", "expires", {"is_field": True, "encoder": trakt_expires_encoder}),
-        ("auth_user", "authUser", {"is_field": True}),
     ]
 
 
@@ -1661,22 +1192,15 @@ CONNECTION_TYPES: Tuple[Type[Connection], ...] = (
     CustomscriptConnection,
     DiscordConnection,
     EmailConnection,
-    EmbyConnection,
     GotifyConnection,
     JoinConnection,
-    KodiConnection,
-    MailgunConnection,
-    PlexHomeTheaterConnection,
-    PlexMediaCenterConnection,
-    PlexMediaServerConnection,
+    NotifiarrConnection,
     ProwlConnection,
     PushbulletConnection,
     PushoverConnection,
     SendgridConnection,
     SlackConnection,
-    SynologyIndexerConnection,
     TelegramConnection,
-    TraktConnection,
     TwitterConnection,
     WebhookConnection,
 )
@@ -1690,30 +1214,23 @@ ConnectionType = Union[
     CustomscriptConnection,
     DiscordConnection,
     EmailConnection,
-    EmbyConnection,
     GotifyConnection,
     JoinConnection,
-    KodiConnection,
-    MailgunConnection,
-    PlexHomeTheaterConnection,
-    PlexMediaCenterConnection,
-    PlexMediaServerConnection,
+    NotifiarrConnection,
     ProwlConnection,
     PushbulletConnection,
     PushoverConnection,
     SendgridConnection,
     SlackConnection,
-    SynologyIndexerConnection,
     TelegramConnection,
-    TraktConnection,
     TwitterConnection,
     WebhookConnection,
 ]
 
 
-class SonarrConnectSettingsConfig(SonarrConfigBase):
+class ProwlarrNotificationsSettings(ProwlarrConfigBase):
     """
-    Manage notification connections in Sonarr.
+    Manage notification connections in Prowlarr.
     """
 
     delete_unmanaged: bool = False
@@ -1726,22 +1243,23 @@ class SonarrConnectSettingsConfig(SonarrConfigBase):
 
     definitions: Dict[str, Annotated[ConnectionType, Field(discriminator="type")]] = {}
     """
-    Connection definitions to configure in Sonarr.
+    Connection definitions to configure in Prowlarr.
     """
 
     @classmethod
-    def from_remote(cls, secrets: SonarrSecrets) -> Self:
-        connections = api_get(secrets, "/api/v3/notification")
-        tag_ids: Dict[str, int] = (
-            {tag["label"]: tag["id"] for tag in api_get(secrets, "/api/v3/tag")}
-            if any(connection["tags"] for connection in connections)
-            else {}
-        )
+    def from_remote(cls, secrets: ProwlarrSecrets) -> Self:
+        with prowlarr_api_client(secrets=secrets) as api_client:
+            connections = prowlarr.NotificationApi(api_client).list_notification()
+            tag_ids: Dict[str, int] = (
+                {tag.label: tag.id for tag in prowlarr.TagApi(api_client).list_tag()}
+                if any(connection.tags for connection in connections)
+                else {}
+            )
         return cls(
             definitions={
                 connection["name"]: CONNECTION_TYPE_MAP[connection["implementation"]]._from_remote(
                     tag_ids=tag_ids,
-                    remote_attrs=connection,
+                    remote_attrs=connection.dict(),
                 )
                 for connection in connections
             },
@@ -1750,23 +1268,24 @@ class SonarrConnectSettingsConfig(SonarrConfigBase):
     def update_remote(
         self,
         tree: str,
-        secrets: SonarrSecrets,
+        secrets: ProwlarrSecrets,
         remote: Self,
         check_unmanaged: bool = False,
     ) -> bool:
         #
         changed = False
         #
-        connection_ids: Dict[str, int] = {
-            connection_json["name"]: connection_json["id"]
-            for connection_json in api_get(secrets, "/api/v3/notification")
-        }
-        tag_ids: Dict[str, int] = (
-            {tag["label"]: tag["id"] for tag in api_get(secrets, "/api/v3/tag")}
-            if any(connection.tags for connection in self.definitions.values())
-            or any(connection.tags for connection in remote.definitions.values())
-            else {}
-        )
+        with prowlarr_api_client(secrets=secrets) as api_client:
+            connection_ids: Dict[str, int] = {
+                connection_json["name"]: connection_json["id"]
+                for connection_json in prowlarr.NotificationApi(api_client).list_notification()
+            }
+            tag_ids: Dict[str, int] = (
+                {tag.label: tag.id for tag in prowlarr.TagApi(api_client).list_tag()}
+                if any(connection.tags for connection in self.definitions.values())
+                or any(connection.tags for connection in remote.definitions.values())
+                else {}
+            )
         #
         for connection_name, connection in self.definitions.items():
             connection_tree = f"{tree}.definitions[{repr(connection_name)}]"

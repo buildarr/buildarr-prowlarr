@@ -217,12 +217,13 @@ class ProwlarrUISettings(ProwlarrConfigBase):
     @classmethod
     def from_remote(cls, secrets: ProwlarrSecrets) -> Self:
         with prowlarr_api_client(secrets=secrets) as api_client:
-            return cls(
-                **cls.get_local_attrs(
-                    remote_map=cls._remote_map,
-                    remote_attrs=vars(prowlarr.UiConfigApi(api_client).get_ui_config()),
-                ),
-            )
+            ui_config = prowlarr.UiConfigApi(api_client).get_ui_config()
+        return cls(
+            **cls.get_local_attrs(
+                remote_map=cls._remote_map,
+                remote_attrs=ui_config.dict(),
+            ),
+        )
 
     def update_remote(
         self,
