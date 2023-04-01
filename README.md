@@ -2,7 +2,7 @@
 
 [![PyPI](https://img.shields.io/pypi/v/buildarr-prowlarr)](https://pypi.org/project/buildarr-prowlarr) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/buildarr-prowlarr)  [![GitHub](https://img.shields.io/github/license/buildarr/buildarr-prowlarr)](https://github.com/buildarr/buildarr-prowlarr/blob/main/LICENSE) ![Pre-commit hooks](https://github.com/buildarr/buildarr-prowlarr/actions/workflows/pre-commit.yml/badge.svg) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-The Buildarr Prowlarr plugin (`buildarr-prowlarr`) is a plugin for Buildarr that adds the capability to configure and manage [prowlarr](http://prowlarr.com) instances.
+The Buildarr Prowlarr plugin (`buildarr-prowlarr`) is a plugin for Buildarr that adds the capability to configure and manage [Prowlarr](http://prowlarr.com) instances.
 
 Prowlarr is a manager/proxy for *Arr application Usenet and Torrent indexers. It handles communication with individual indexers for multiple instances on their behalf from a single client, allowing easier configuration of indexers by only setting them up once, and better management of traffic going to indexers to reduce the risk of running into rate l
 
@@ -20,7 +20,7 @@ When using Buildarr as a [Docker container](https://buildarr.github.io/installat
 -e BUILDARR_INSTALL_PACKAGES="buildarr-prowlarr"
 ```
 
-There are plans to bundle the Prowalrr plugin into the official Docker container (`callum027/buildarr`).
+There are plans to bundle the Prowlarr plugin into the official Docker container (`callum027/buildarr`).
 
 ## Quick Start
 

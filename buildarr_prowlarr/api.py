@@ -19,11 +19,11 @@ Prowlarr plugin API functions.
 
 from __future__ import annotations
 
+import logging
 import re
 
 from contextlib import contextmanager
-from logging import getLogger
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import json5
 import requests
@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 
     from .secrets import ProwlarrSecrets
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 INITIALIZE_JS_RES_PATTERN = re.compile(r"(?s)^window\.Prowlarr = ({.*});$")
 
@@ -64,6 +64,13 @@ def prowlarr_api_client(
     """
 
     configuration = Configuration(host=secrets.host_url if secrets else host_url)
+
+    root_logger = logging.getLogger()
+    configuration.logger_format = cast(
+        str,
+        cast(logging.Formatter, root_logger.handlers[0].formatter)._fmt,
+    )
+    configuration.debug = logging.getLevelName(root_logger.level) == "DEBUG"
 
     if secrets:
         configuration.api_key["X-Api-Key"] = secrets.api_key.get_secret_value()

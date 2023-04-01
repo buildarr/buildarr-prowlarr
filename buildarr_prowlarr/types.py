@@ -21,9 +21,13 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import SecretStr
+from pydantic import ConstrainedStr, SecretStr
 
 ProwlarrProtocol = Literal["http", "https"]
+
+
+class LowerCaseStr(ConstrainedStr):
+    to_lower = True
 
 
 class ProwlarrApiKey(SecretStr):

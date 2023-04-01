@@ -29,8 +29,7 @@ from typing_extensions import Self
 
 from ..api import prowlarr_api_client
 from ..types import ProwlarrApiKey, ProwlarrProtocol
-
-# from .settings import ProwlarrSettingsConfig
+from .settings import ProwlarrSettings
 
 if TYPE_CHECKING:
     from ..secrets import ProwlarrSecrets
@@ -134,7 +133,7 @@ class ProwlarrInstanceConfig(_ProwlarrInstanceConfig):
     When undefined or set to `None`, the version tag will be set to `latest`.
     """
 
-    # settings: ProwlarrSettingsConfig = ProwlarrSettingsConfig()
+    settings: ProwlarrSettings = ProwlarrSettings()
     """
     Prowlarr settings.
     Configuration options for Prowlarr itself are set within this structure.
@@ -150,7 +149,7 @@ class ProwlarrInstanceConfig(_ProwlarrInstanceConfig):
             protocol=secrets.protocol,
             api_key=secrets.api_key,
             version=version,
-            # settings=ProwlarrSettingsConfig.from_remote(secrets),
+            settings=ProwlarrSettings.from_remote(secrets),
         )
 
     def to_compose_service(self, compose_version: str, service_name: str) -> Dict[str, Any]:
