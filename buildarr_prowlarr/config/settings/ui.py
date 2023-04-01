@@ -194,6 +194,7 @@ class ProwlarrUISettings(ProwlarrConfigBase):
     * `dark` (Dark-coloured theme)
     """
 
+    # Language
     ui_language: LowerCaseStr = "en"  # type: ignore[assignment]
     """
     The display language for the Prowlarr UI.
