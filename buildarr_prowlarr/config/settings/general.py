@@ -178,12 +178,12 @@ class HostGeneralSettings(GeneralSettings):
     """
 
     _remote_map: List[RemoteMapEntry] = [
-        ("bind_address", "bind_address", {}),
+        ("bind_address", "bindAddress", {}),
         ("port", "port", {}),
-        ("ssl_port", "ssl_port", {}),
-        ("use_ssl", "enable_ssl", {}),
-        ("url_base", "url_base", {"decoder": lambda v: v or None, "encoder": lambda v: v or ""}),
-        ("instance_name", "instance_name", {}),
+        ("ssl_port", "sslPort", {}),
+        ("use_ssl", "enableSsl", {}),
+        ("url_base", "urlBase", {"decoder": lambda v: v or None, "encoder": lambda v: v or ""}),
+        ("instance_name", "instanceName", {}),
     ]
 
 
@@ -233,7 +233,7 @@ class SecurityGeneralSettings(GeneralSettings):
     """
 
     _remote_map: List[RemoteMapEntry] = [
-        ("authentication", "authentication_method", {}),
+        ("authentication", "authenticationMethod", {}),
         (
             "username",
             "username",
@@ -260,7 +260,7 @@ class SecurityGeneralSettings(GeneralSettings):
                 "encoder": lambda v: v.get_secret_value() if v else "",
             },
         ),
-        ("certificate_validation", "certificate_validation", {}),
+        ("certificate_validation", "certificateValidation", {}),
     ]
 
     @validator("username", "password")
@@ -353,22 +353,22 @@ class ProxyGeneralSettings(GeneralSettings):
     """
 
     _remote_map: List[RemoteMapEntry] = [
-        ("enable", "proxy_enabled", {}),
-        ("proxy_type", "proxy_type", {}),
+        ("enable", "proxyEnabled", {}),
+        ("proxy_type", "proxyType", {}),
         (
             "hostname",
-            "proxy_hostname",
+            "proxyHostname",
             {"decoder": lambda v: v or None, "encoder": lambda v: v or ""},
         ),
-        ("port", "proxy_port", {}),
+        ("port", "proxyPort", {}),
         (
             "username",
-            "proxy_username",
+            "proxyUsername",
             {"decoder": lambda v: v or None, "encoder": lambda v: v or ""},
         ),
         (
             "password",
-            "proxy_password",
+            "proxyPassword",
             {
                 "decoder": lambda v: v or None,
                 "encoder": lambda v: v.get_secret_value() if v else "",
@@ -376,7 +376,7 @@ class ProxyGeneralSettings(GeneralSettings):
         ),
         (
             "ignored_addresses",
-            "proxy_bypass_filter",
+            "proxyBypassFilter",
             {
                 "decoder": lambda v: (
                     set(addr.strip() for addr in v.split(",")) if v and v.strip() else []
@@ -384,7 +384,7 @@ class ProxyGeneralSettings(GeneralSettings):
                 "encoder": lambda v: ",".join(sorted(v)) if v else "",
             },
         ),
-        ("bypass_proxy_for_local_addresses", "proxy_bypass_local_addresses", {}),
+        ("bypass_proxy_for_local_addresses", "proxyBypassLocalAddresses", {}),
     ]
 
 
@@ -404,7 +404,7 @@ class LoggingGeneralSettings(GeneralSettings):
     * `TRACE` - Trace diagnostics log output
     """
 
-    _remote_map: List[RemoteMapEntry] = [("log_level", "log_level", {})]
+    _remote_map: List[RemoteMapEntry] = [("log_level", "logLevel", {})]
 
 
 class AnalyticsGeneralSettings(GeneralSettings):
@@ -423,7 +423,7 @@ class AnalyticsGeneralSettings(GeneralSettings):
     Requires a restart of Prowlarr to take effect.
     """
 
-    _remote_map: List[RemoteMapEntry] = [("send_anonymous_usage_data", "analytics_enabled", {})]
+    _remote_map: List[RemoteMapEntry] = [("send_anonymous_usage_data", "analyticsEnabled", {})]
 
 
 class UpdatesGeneralSettings(GeneralSettings):
@@ -474,11 +474,11 @@ class UpdatesGeneralSettings(GeneralSettings):
 
     _remote_map: List[RemoteMapEntry] = [
         ("branch", "branch", {}),
-        ("automatic", "update_automatically", {}),
-        ("mechanism", "update_mechanism", {}),
+        ("automatic", "updateAutomatically", {}),
+        ("mechanism", "updateMechanism", {}),
         (
             "script_path",
-            "update_script_path",
+            "updateScriptPath",
             {"decoder": lambda v: v or None, "encoder": lambda v: v or ""},
         ),
     ]
@@ -512,9 +512,9 @@ class BackupGeneralSettings(GeneralSettings):
     """
 
     _remote_map: List[RemoteMapEntry] = [
-        ("folder", "backup_folder", {}),
-        ("interval", "backup_interval", {}),
-        ("retention", "backup_retention", {}),
+        ("folder", "backupFolder", {}),
+        ("interval", "backupInterval", {}),
+        ("retention", "backupRetention", {}),
     ]
 
 
@@ -534,7 +534,7 @@ class ProwlarrGeneralSettings(ProwlarrConfigBase):
     @classmethod
     def from_remote(cls, secrets: ProwlarrSecrets) -> Self:
         with prowlarr_api_client(secrets=secrets) as api_client:
-            remote_attrs = prowlarr.HostConfigApi(api_client).get_host_config().dict()
+            remote_attrs = prowlarr.HostConfigApi(api_client).get_host_config().to_dict()
         return cls(
             host=HostGeneralSettings._from_remote(remote_attrs),
             security=SecurityGeneralSettings._from_remote(remote_attrs),
@@ -610,8 +610,8 @@ class ProwlarrGeneralSettings(ProwlarrConfigBase):
                 remote_attrs = host_config_api.get_host_config().dict()
                 host_config_api.update_host_config(
                     id=str(remote_attrs["id"]),
-                    host_config_resource=prowlarr.HostConfigResource(
-                        **{
+                    host_config_resource=prowlarr.HostConfigResource.from_dict(
+                        {
                             # There are some undocumented values that are not
                             # set by Buildarr. Pass those through unmodified.
                             **remote_attrs,

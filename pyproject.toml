@@ -82,7 +82,17 @@ select = [
     "YTT",
 ]
 extend-select = ["COM812", "COM818", "UP009"]
-extend-ignore = ["A003", "B023", "N805", "N806", "PLR0911", "PLR0912", "PLR0913", "PLR0915"]
+extend-ignore = [
+    "A003",
+    "B023",
+    "N805",
+    "N806",
+    "PLR0911",
+    "PLR0912",
+    "PLR0913",
+    "PLR0915",
+    "RUF001",
+]
 
 [tool.ruff.isort]
 lines-between-types = 1

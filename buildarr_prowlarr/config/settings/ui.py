@@ -203,15 +203,15 @@ class ProwlarrUISettings(ProwlarrConfigBase):
     """
 
     _remote_map: List[RemoteMapEntry] = [
-        ("first_day_of_week", "first_day_of_week", {}),
-        ("week_column_header", "calendar_week_column_header", {}),
-        ("short_date_format", "short_date_format", {}),
-        ("long_date_format", "long_date_format", {}),
-        ("time_format", "time_format", {}),
-        ("show_relative_dates", "show_relative_dates", {}),
-        ("enable_color_impaired_mode", "enable_color_impaired_mode", {}),
+        ("first_day_of_week", "firstDayOfWeek", {}),
+        ("week_column_header", "calendarWeekColumnHeader", {}),
+        ("short_date_format", "shortDateFormat", {}),
+        ("long_date_format", "longDateFormat", {}),
+        ("time_format", "timeFormat", {}),
+        ("show_relative_dates", "showRelativeDates", {}),
+        ("enable_color_impaired_mode", "enableColorImpairedMode", {}),
         ("theme", "theme", {}),
-        ("ui_language", "ui_language", {}),
+        ("ui_language", "uiLanguage", {}),
     ]
 
     @classmethod
@@ -221,7 +221,7 @@ class ProwlarrUISettings(ProwlarrConfigBase):
         return cls(
             **cls.get_local_attrs(
                 remote_map=cls._remote_map,
-                remote_attrs=ui_config.dict(),
+                remote_attrs=ui_config.to_dict(),
             ),
         )
 
@@ -245,9 +245,8 @@ class ProwlarrUISettings(ProwlarrConfigBase):
                 config_id = ui_config_api.get_ui_config().id
                 ui_config_api.update_ui_config(
                     id=str(config_id),
-                    ui_config_resource=prowlarr.UiConfigResource(
-                        id=config_id,
-                        **remote_attrs,
+                    ui_config_resource=prowlarr.UiConfigResource.from_dict(
+                        {"id": config_id, **remote_attrs},
                     ),
                 )
             return True

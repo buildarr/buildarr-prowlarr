@@ -209,9 +209,9 @@ class NotificationTriggers(ProwlarrConfigBase):
     """
 
     _remote_map: List[RemoteMapEntry] = [
-        ("on_health_issue", "on_health_issue", {}),
-        ("include_health_warnings", "include_health_warnings", {}),
-        ("on_application_update", "on_application_update", {}),
+        ("on_health_issue", "onHealthIssue", {}),
+        ("include_health_warnings", "includeHealthWarnings", {}),
+        ("on_application_update", "onApplicationUpdate", {}),
     ]
 
 
@@ -291,7 +291,7 @@ class Connection(ProwlarrConfigBase):
         }
         with prowlarr_api_client(secrets=secrets) as api_client:
             prowlarr.NotificationApi(api_client).create_notification(
-                notification_resource=prowlarr.NotificationResource(**remote_attrs),
+                notification_resource=prowlarr.NotificationResource.from_dict(remote_attrs),
             )
 
     def _update_remote(
@@ -321,15 +321,17 @@ class Connection(ProwlarrConfigBase):
         if triggers_updated or base_updated:
             with prowlarr_api_client(secrets=secrets) as api_client:
                 prowlarr.NotificationApi(api_client).update_notification(
-                    id=connection_id,
-                    notification_resource=prowlarr.NotificationResource(
-                        id=connection_id,
-                        name=connection_name,
-                        implementation=self._implementation,
-                        implementation_name=self._implementation_name,
-                        config_contract=self._config_contract,
-                        **triggers_remote_attrs,
-                        **base_remote_attrs,
+                    id=str(connection_id),
+                    notification_resource=prowlarr.NotificationResource.from_dict(
+                        {
+                            "id": connection_id,
+                            "name": connection_name,
+                            "implementation": self._implementation,
+                            "implementationName": self._implementation_name,
+                            "configContract": self._config_contract,
+                            **triggers_remote_attrs,
+                            **base_remote_attrs,
+                        },
                     ),
                 )
             return True
@@ -1259,7 +1261,7 @@ class ProwlarrNotificationsSettings(ProwlarrConfigBase):
             definitions={
                 connection["name"]: CONNECTION_TYPE_MAP[connection["implementation"]]._from_remote(
                     tag_ids=tag_ids,
-                    remote_attrs=connection.dict(),
+                    remote_attrs=connection.to_dict(),
                 )
                 for connection in connections
             },
@@ -1277,8 +1279,8 @@ class ProwlarrNotificationsSettings(ProwlarrConfigBase):
         #
         with prowlarr_api_client(secrets=secrets) as api_client:
             connection_ids: Dict[str, int] = {
-                connection_json["name"]: connection_json["id"]
-                for connection_json in prowlarr.NotificationApi(api_client).list_notification()
+                connection.name: connection.id
+                for connection in prowlarr.NotificationApi(api_client).list_notification()
             }
             tag_ids: Dict[str, int] = (
                 {tag.label: tag.id for tag in prowlarr.TagApi(api_client).list_tag()}

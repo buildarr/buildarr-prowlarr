@@ -25,13 +25,13 @@ from typing_extensions import Self
 
 from ..types import ProwlarrConfigBase
 from .general import ProwlarrGeneralSettings
+from .indexers import ProwlarrIndexersSettings
 from .notifications import ProwlarrNotificationsSettings
 from .tags import ProwlarrTagsSettings
 from .ui import ProwlarrUISettings
 
 # from .apps import ProwlarrAppsSettings
 # from .download_clients import ProwlarrDownloadClientsSettings
-# from .indexers import ProwlarrIndexersSettings
 # from .proxies import ProwlarrProxiesSettings
 
 if TYPE_CHECKING:
@@ -43,7 +43,7 @@ class ProwlarrSettings(ProwlarrConfigBase):
     Prowlarr settings, used to configure a remote Prowlarr instance.
     """
 
-    # indexers = ProwlarrIndexersSettings()
+    indexers: ProwlarrIndexersSettings = ProwlarrIndexersSettings()
     # proxies = ProwlarrProxiesSettings()
     # apps = ProwlarrAppsSettings()
     # download_clients = ProwlarrDownloadClientsSettings()
@@ -76,12 +76,12 @@ class ProwlarrSettings(ProwlarrConfigBase):
                 #     remote.proxies,
                 #     check_unmanaged=check_unmanaged,
                 # ),
-                # self.indexers.update_remote(
-                #     f"{tree}.indexers",
-                #     secrets,
-                #     remote.indexers,
-                #     check_unmanaged=check_unmanaged,
-                # ),
+                self.indexers.update_remote(
+                    f"{tree}.indexers",
+                    secrets,
+                    remote.indexers,
+                    check_unmanaged=check_unmanaged,
+                ),
                 # self.apps.update_remote(
                 #     f"{tree}.apps",
                 #     secrets,

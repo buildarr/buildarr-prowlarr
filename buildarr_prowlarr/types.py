@@ -30,6 +30,11 @@ class LowerCaseStr(ConstrainedStr):
     to_lower = True
 
 
+class LowerCaseNonEmptyStr(LowerCaseStr):
+    min_length = 1
+    strip_whitespace = True
+
+
 class ProwlarrApiKey(SecretStr):
     """
     Constrained secret string type for a Prowlarr API key.

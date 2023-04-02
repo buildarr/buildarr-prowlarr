@@ -96,6 +96,6 @@ class ProwlarrTagsSettings(ProwlarrConfigBase):
                         logger.debug("%s.definitions[%i]: %s (exists)", tree, i, repr(tag))
                     else:
                         logger.info("%s.definitions[%i]: %s -> (created)", tree, i, repr(tag))
-                        tag_api.create_tag(prowlarr.TagResource(label=tag))
+                        tag_api.create_tag(prowlarr.TagResource.from_dict({"label": tag}))
                         changed = True
         return changed
