@@ -19,6 +19,7 @@ Prowlarr plugin indexers settings configuration.
 
 from __future__ import annotations
 
+from datetime import datetime
 from logging import getLogger
 from typing import Any, Dict, List, Mapping, Optional, Set
 
@@ -32,6 +33,7 @@ from typing_extensions import Annotated, Self
 from ....api import prowlarr_api_client
 from ....secrets import ProwlarrSecrets
 from ....types import LowerCaseNonEmptyStr
+from ....util import zulu_datetime_format
 from ...types import ProwlarrConfigBase
 
 logger = getLogger(__name__)
@@ -261,6 +263,7 @@ class Indexer(ProwlarrConfigBase):
         indexer_schema: List[prowlarr.IndexerResource],
         indexer_id: int,
         indexer_name: str,
+        indexer_added: datetime,
     ) -> bool:
         #
         schema = self._get_schema(indexer_schema)
@@ -371,8 +374,9 @@ class Indexer(ProwlarrConfigBase):
                     indexer_resource=prowlarr.IndexerResource.from_dict(
                         {
                             "id": indexer_id,
-                            **schema,
                             "name": indexer_name,
+                            "added": zulu_datetime_format(indexer_added),
+                            **schema,
                             **common_attrs,
                             "fields": fields,
                         },
@@ -471,8 +475,8 @@ class IndexersSettings(ProwlarrConfigBase):
         with prowlarr_api_client(secrets=secrets) as api_client:
             indexer_api = prowlarr.IndexerApi(api_client)
             indexer_schema = indexer_api.list_indexer_schema()
-            indexer_ids: Dict[str, int] = {
-                indexer.name: indexer.id for indexer in indexer_api.list_indexer()
+            indexer_api_objs: Dict[str, prowlarr.IndexerResource] = {
+                indexer.name: indexer for indexer in indexer_api.list_indexer()
             }
             tag_ids: Dict[str, int] = (
                 {tag.label: tag.id for tag in prowlarr.TagApi(api_client).list_tag()}
@@ -500,8 +504,9 @@ class IndexersSettings(ProwlarrConfigBase):
                 remote=remote.definitions[indexer_name],  # type: ignore[arg-type]
                 tag_ids=tag_ids,
                 indexer_schema=indexer_schema,
-                indexer_id=indexer_ids[indexer_name],
+                indexer_id=indexer_api_objs[indexer_name].id,
                 indexer_name=indexer_name,
+                indexer_added=indexer_api_objs[indexer_name].added,
             ):
                 changed = True
         #
@@ -512,7 +517,7 @@ class IndexersSettings(ProwlarrConfigBase):
                     indexer._delete_remote(
                         tree=indexer_tree,
                         secrets=secrets,
-                        indexer_id=indexer_ids[indexer_name],
+                        indexer_id=indexer_api_objs[indexer_name].id,
                     )
                     changed = True
                 else:
