@@ -20,13 +20,13 @@ Prowlarr plugin indexers settings configuration.
 from __future__ import annotations
 
 from logging import getLogger
-from typing import Any, Dict, List, Literal, Mapping, Optional, Set, Tuple, Type, Union
+from typing import Any, Dict, List, Mapping, Optional, Set
 
 import prowlarr
 
 from buildarr.config import RemoteMapEntry
 from buildarr.types import NonEmptyStr, Password
-from pydantic import Field, HttpUrl, validator
+from pydantic import Field, validator
 from typing_extensions import Annotated, Self
 
 from ....api import prowlarr_api_client
@@ -68,12 +68,17 @@ class Indexer(ProwlarrConfigBase):
     The following configuration attributes can be defined on all indexer types.
     """
 
-    site: LowerCaseNonEmptyStr
+    type: LowerCaseNonEmptyStr
     """
     The name of the site being accessed by this indexer.
 
     This is used to determine the defaults for many indexer attributes, such as the
     available indexer base URLs.
+    """
+
+    enable: bool = False
+    """
+    When set to `True`, the indexer is active and Prowlarr is making requests to it.
     """
 
     indexer_priority: int = Field(25, ge=1, le=50)
@@ -83,7 +88,7 @@ class Indexer(ProwlarrConfigBase):
     1 is highest priority and 50 is lowest priority.
     """
 
-    tags: List[NonEmptyStr] = []
+    tags: Set[NonEmptyStr] = set()
     """
     Only use this indexer for series with at least one matching tag.
     Leave blank to use with all series.
@@ -103,21 +108,15 @@ class Indexer(ProwlarrConfigBase):
     If empty, undefined or set to `0`, use no limit.
     """
 
-    _implementation_name: str
-    _allowed_sites: Set[str] = set()
-    _remote_map: List[RemoteMapEntry]
+    fields: Dict[str, Any] = {}
 
-    @validator("site")
-    def site_is_allowed(cls, value: str) -> str:
-        if cls._allowed_sites and value not in cls._allowed_sites:
-            raise ValueError(
-                f"must be one of the following allowed sites: {', '.join(cls._allowed_sites)}",
-            )
-        return value
+    secret_fields: Dict[str, Password] = {}
 
     @classmethod
     def _get_base_remote_map(cls, tag_ids: Mapping[str, int]) -> List[RemoteMapEntry]:
         return [
+            ("type", "definitionName", {}),
+            ("enable", "enable", {}),
             ("indexer_priority", "priority", {}),
             (
                 "tags",
@@ -130,118 +129,6 @@ class Indexer(ProwlarrConfigBase):
             ("query_limit", "baseSettings.queryLimit", {"is_field": True}),
             ("grab_limit", "baseSettings.grabLimit", {"is_field": True}),
         ]
-
-    @classmethod
-    def _from_remote(cls, tag_ids: Mapping[str, int], remote_attrs: Mapping[str, Any]) -> Self:
-        return cls(
-            type=cls.__fields__["type"].default,
-            **cls.get_local_attrs(
-                cls._get_base_remote_map(tag_ids) + cls._remote_map,
-                remote_attrs,
-            ),
-        )
-
-    def _get_schema(self, indexer_schema: List[prowlarr.IndexerResource]) -> Dict[str, Any]:
-        return next(s for s in indexer_schema if s.definition_name == self.site).to_dict()
-
-    def _create_remote(
-        self,
-        tree: str,
-        secrets: ProwlarrSecrets,
-        tag_ids: Mapping[str, int],
-        indexer_schema: List[prowlarr.IndexerResource],
-        indexer_name: str,
-    ) -> None:
-        schema = self._get_schema(indexer_schema)
-        changed_attrs = self.get_create_remote_attrs(
-            tree,
-            self._get_base_remote_map(tag_ids) + self._remote_map,
-        )
-        changed_fields = {field["name"]: field["value"] for field in changed_attrs["fields"]}
-        remote_attrs = {
-            **schema,
-            **changed_attrs,
-            "fields": [
-                {**field, "value": changed_fields.get(field["name"], field["value"])}
-                for field in schema["fields"]
-            ],
-        }
-        with prowlarr_api_client(secrets=secrets) as api_client:
-            prowlarr.IndexerApi(api_client).create_indexer(
-                indexer_resource=prowlarr.IndexerResource.from_dict(remote_attrs),
-            )
-
-    def _update_remote(
-        self,
-        tree: str,
-        secrets: ProwlarrSecrets,
-        remote: Self,
-        tag_ids: Mapping[str, int],
-        indexer_schema: List[prowlarr.IndexerResource],
-        indexer_id: int,
-        indexer_name: str,
-    ) -> bool:
-        updated, changed_attrs = self.get_update_remote_attrs(
-            tree,
-            remote,
-            self._get_base_remote_map(tag_ids) + self._remote_map,
-            set_unchanged=True,
-        )
-        if updated:
-            schema = self._get_schema(indexer_schema)
-            changed_fields = {field["name"]: field["value"] for field in changed_attrs["fields"]}
-            remote_attrs = {
-                **schema,
-                "id": indexer_id,
-                "name": indexer_name,
-                **changed_attrs,
-                "fields": [
-                    {**field, "value": changed_fields.get(field["name"], field["value"])}
-                    for field in schema["fields"]
-                ],
-            }
-            with prowlarr_api_client(secrets=secrets) as api_client:
-                prowlarr.IndexerApi(api_client).update_indexer(
-                    id=str(indexer_id),
-                    indexer_resource=prowlarr.IndexerResource.from_dict(remote_attrs),
-                )
-            return True
-        return False
-
-    def _delete_remote(self, tree: str, secrets: ProwlarrSecrets, indexer_id: int) -> None:
-        logger.info("%s: (...) -> (deleted)", tree)
-        with prowlarr_api_client(secrets=secrets) as api_client:
-            prowlarr.IndexerApi(api_client).delete_indexer(id=indexer_id)
-
-
-class RawIndexer(Indexer):
-    """
-    Attribute type for defining an indexer of any type.
-
-    This allows users to define indexers of types that Buildarr does not yet explicitly support,
-    but almost no validation is done on configured attribute values.
-
-    Buildarr will use the schema for the chosen indexer site as the base for generating API requests
-    to Prowlarr, so in most cases it isn't necessary to provide every single possible attribute
-    value.
-
-    If any issues are encountered, it is recommended to create the indexer manually on Prowlarr,
-    use `buildarr prowlarr dump-config` to dump the indexer configuration, and copy-paste it
-    verbatim into the Buildarr configuration to start managing it.
-    """
-
-    type: Literal["raw"] = "raw"
-    """
-    Type value associated with this kind of indexer.
-    """
-
-    attributes: Dict[str, Any] = {}
-
-    fields: Dict[str, Any] = {}
-
-    secret_fields: Dict[str, Password] = {}
-
-    _remote_only_attrs: Set[str] = {"added"}
 
     @validator("secret_fields")
     def check_duplicate_keys(
@@ -261,22 +148,10 @@ class RawIndexer(Indexer):
     @classmethod
     def _from_remote(cls, tag_ids: Mapping[str, int], remote_attrs: Mapping[str, Any]) -> Self:
         remote_map = cls._get_base_remote_map(tag_ids)
-        remote_map_attrs = set(
-            entry[1] for entry in remote_map if not entry[2].get("is_field", False)
-        )
         remote_map_fields = set(
             (entry[1] for entry in remote_map if entry[2].get("is_field", False)),
         )
         common_attrs = cls.get_local_attrs(remote_map, remote_attrs)
-        attributes: Dict[str, Any] = {
-            key: value
-            for key, value in remote_attrs.items()
-            # Attribute to not include in the Buildarr indexer object.
-            # These are usually either attributes handled separately
-            # (usually common to all indexer types),
-            # or automatically generated ones that don't do anything behaviour-wise.
-            if key not in ("id", "name", *cls._remote_only_attrs, *remote_map_attrs)
-        }
         fields: Dict[str, Any] = {}
         secret_fields: Dict[str, str] = {}
         for field in remote_attrs["fields"]:
@@ -299,13 +174,19 @@ class RawIndexer(Indexer):
             else:
                 fields[name] = value
         return cls(
-            type=cls.__fields__["type"].default,
-            site=remote_attrs["definitionName"],
             **common_attrs,
-            attributes=attributes,
             fields=fields,
             secret_fields=secret_fields,
         )
+
+    def _get_schema(self, indexer_schema: List[prowlarr.IndexerResource]) -> Dict[str, Any]:
+        return {
+            k: v
+            for k, v in next(
+                s for s in indexer_schema if s.definition_name == self.type
+            ).to_dict().items()
+            if k not in ["id", "name", "added"]
+        }
 
     def _create_remote(
         self,
@@ -316,66 +197,35 @@ class RawIndexer(Indexer):
         indexer_name: str,
     ) -> None:
         #
-        remote_attrs: Dict[str, Any] = {}
-        #
         schema = self._get_schema(indexer_schema)
         #
         remote_map = self._get_base_remote_map(tag_ids)
-        remote_map_attrs = set(
-            entry[1] for entry in remote_map if not entry[2].get("is_field", False)
-        )
         remote_map_fields = set(
             (entry[1] for entry in remote_map if entry[2].get("is_field", False)),
         )
         #
-        remote_map_remote_attrs = self.get_create_remote_attrs(
-            tree,
-            self._get_base_remote_map(tag_ids),
-        )
+        common_attrs = self.get_create_remote_attrs(tree, remote_map)
+        common_fields: List[Dict[str, Any]] = common_attrs["fields"]
+        del common_attrs["fields"]
         #
-        for key, default_value in schema.items():
-            #
-            if key == "name":
-                remote_attrs[key] = indexer_name
-                continue
-            #
-            if key in self._remote_only_attrs:
-                continue
-            #
-            if key == "fields":
-                remote_attrs["fields"] = []
-                continue
-            #
-            if key in remote_map_attrs:
-                remote_attrs[key] = remote_map_remote_attrs[key]
-                continue
-            #
-            value = self.attributes.get(key, default_value)
-            logger.info(
-                "%s.attributes[%s]: %s (created)",
-                tree,
-                repr(key),
-                repr(value),
-            )
-            remote_attrs[key] = value
-        #
+        fields: List[Dict[str, Any]] = []
         for field in schema["fields"]:
             name = field["name"]
             #
             if name in remote_map_fields:
-                for f in remote_map_remote_attrs["fields"]:
+                for f in common_fields:
                     if f["name"] == name:
-                        remote_attrs["fields"].append({**field, "value": f["value"]})
+                        fields.append({**field, "value": f["value"]})
                         break
                 else:
-                    raise RuntimeError(f"Unable to find field '{name}' in remote map remote attrs")
+                    raise RuntimeError(f"Unable to find field '{name}' in common attrs")
                 continue
             #
             try:
                 value = self.secret_fields[name]
                 attr_name = "secret_fields"
                 format_value = str(value)
-                raw_value = value.get_secret_value()
+                raw_value: Any = value.get_secret_value()
             except KeyError:
                 value = self.fields.get(name, field.get("value", None))
                 attr_name = "fields"
@@ -388,11 +238,18 @@ class RawIndexer(Indexer):
                 repr(name),
                 format_value,
             )
-            remote_attrs["fields"].append({**field, "value": raw_value})
+            fields.append({**field, "value": raw_value})
         #
         with prowlarr_api_client(secrets=secrets) as api_client:
             prowlarr.IndexerApi(api_client).create_indexer(
-                indexer_resource=prowlarr.IndexerResource.from_dict(remote_attrs),
+                indexer_resource=prowlarr.IndexerResource.from_dict(
+                    {
+                        **schema,
+                        "name": indexer_name,
+                        **common_attrs,
+                        "fields": fields,
+                    },
+                ),
             )
 
     def _update_remote(
@@ -406,80 +263,32 @@ class RawIndexer(Indexer):
         indexer_name: str,
     ) -> bool:
         #
-        remote_attrs: Dict[str, Any] = {"id": indexer_id}
-        #
         schema = self._get_schema(indexer_schema)
         #
         remote_map = self._get_base_remote_map(tag_ids)
-        remote_map_attrs = set(
-            entry[1] for entry in remote_map if not entry[2].get("is_field", False)
-        )
         remote_map_fields = set(
             (entry[1] for entry in remote_map if entry[2].get("is_field", False)),
         )
         #
-        changed, remote_map_remote_attrs = self.get_update_remote_attrs(
+        changed, common_attrs = self.get_update_remote_attrs(
             tree,
             remote,
-            self._get_base_remote_map(tag_ids),
+            remote_map,
             set_unchanged=True,
         )
+        common_fields: List[Dict[str, Any]] = common_attrs["fields"]
+        del common_attrs["fields"]
         #
-        for key in schema.keys():
-            #
-            if key == "name":
-                remote_attrs[key] = indexer_name
-                continue
-            #
-            if key in self._remote_only_attrs:
-                continue
-            #
-            if key == "fields":
-                remote_attrs["fields"] = []
-                continue
-            #
-            if key in remote_map_attrs:
-                remote_attrs[key] = remote_map_remote_attrs[key]
-                continue
-            #
-            remote_value = remote.attributes[key]
-            try:
-                local_value = self.attributes[key]
-            except KeyError:
-                logger.debug(
-                    "%s.attributes[%s]: %s (unmanaged)",
-                    tree,
-                    repr(key),
-                    repr(remote_value),
-                )
-                remote_attrs[key] = remote_value
-            else:
-                if local_value != remote_value:
-                    logger.info(
-                        "%s.attributes[%s]: %s -> %s",
-                        tree,
-                        repr(key),
-                        repr(remote_value),
-                        repr(local_value),
-                    )
-                    remote_attrs[key] = local_value
-                    changed = True
-                else:
-                    logger.debug(
-                        "%s.attributes[%s]: %s (up to date)",
-                        tree,
-                        repr(key),
-                        repr(local_value),
-                    )
-                    remote_attrs[key] = local_value
-        #
+        fields: List[Dict[str, Any]] = []
+        local_value: Any
+        remote_value: Any
         for field in schema["fields"]:
             name = field["name"]
             #
             if name in remote_map_fields:
-                for f in remote_map_remote_attrs["fields"]:
+                for f in common_fields:
                     if f["name"] == name:
-                        remote_attrs["fields"].append({**field, "value": f["value"]})
+                        fields.append({**field, "value": f["value"]})
                         break
                 else:
                     raise RuntimeError(f"Unable to find field '{name}' in remote map remote attrs")
@@ -553,338 +362,29 @@ class RawIndexer(Indexer):
                 )
                 field_value = remote_value
             #
-            remote_attrs["fields"].append({**field, "value": field_value})
+            fields.append({**field, "value": field_value})
         #
         if changed:
             with prowlarr_api_client(secrets=secrets) as api_client:
                 prowlarr.IndexerApi(api_client).update_indexer(
                     id=str(indexer_id),
-                    indexer_resource=prowlarr.IndexerResource.from_dict(remote_attrs),
+                    indexer_resource=prowlarr.IndexerResource.from_dict(
+                        {
+                            "id": indexer_id,
+                            **schema,
+                            "name": indexer_name,
+                            **common_attrs,
+                            "fields": fields,
+                        },
+                    ),
                 )
             return True
         return False
 
-
-class UsenetIndexer(Indexer):
-    """
-    Usenet indexer base class.
-    """
-
-    pass
-
-
-class TorrentIndexer(Indexer):
-    """
-    Configuration attributes common to all torrent indexers.
-    """
-
-    seed_ratio: Optional[Annotated[float, Field(ge=0)]] = None
-    """
-    The ratio a torrent should reach before stopping.
-
-    If empty or undefined, use the app's default.
-    """
-
-    seed_time: Optional[Annotated[int, Field(ge=0)]] = None  # minutes
-    """
-    The time a torrent should be seeded before stopping, in minutes.
-
-    If empty or undefined, use the app's default.
-    """
-
-    @classmethod
-    def _get_base_remote_map(cls, tag_ids: Mapping[str, int]) -> List[RemoteMapEntry]:
-        return [
-            *super()._get_base_remote_map(tag_ids),
-            ("seed_ratio", "torrentBaseSettings.seedRatio", {"is_field": True}),
-            ("seed_time", "torrentBaseSettings.seedTime", {"is_field": True}),
-        ]
-
-
-class AnimebytesIndexer(TorrentIndexer):
-    """
-    An indexer for monitoring the AnimeBytes private torrent tracker.
-    """
-
-    type: Literal["animebytes"] = "animebytes"
-    """
-    Type value associated with this kind of indexer.
-    """
-
-    site: LowerCaseNonEmptyStr = "animebytes"  # type: ignore[assignment]
-
-    base_url: Optional[HttpUrl] = None
-    """
-    Base URL to use to access the site.
-
-    If undefined, use the default base URL.
-    """
-
-    username: NonEmptyStr
-    """
-    Username to authenticate as.
-    """
-
-    passkey: Password
-    """
-    Passkey to use to authenticate with the site.
-    """
-
-    enable_sonarr_compatibility: bool = True
-    """
-    Makes Prowlarr try to add Season information into Release names.
-
-    Without this Sonarr can't match any Seasons, but it has a lot of false positives as well.
-    """
-
-    use_filenames_for_single_episodes: bool = False
-    """
-    Makes Prowlarr replace AnimeBytes release names with the actual filename.
-
-    This currently only works for single episode releases.
-    """
-
-    _implementation_name: str = "AnimeBytes"
-    _allowed_sites: Set[str] = {"animebytes"}
-    _remote_map: List[RemoteMapEntry] = [
-        ("base_url", "baseUrl", {"is_field": True}),
-        ("username", "username", {"is_field": True}),
-        ("passkey", "passkey", {"is_field": True}),
-        ("enable_sonarr_compatibility", "enableSonarrCompatibility", {"is_field": True}),
-        ("use_filename_for_single_episodes", "useFilenameForSingleEpisodes", {"is_field": True}),
-    ]
-
-
-class AvistazIndexer(TorrentIndexer):
-    """
-    An indexer for monitoring the Avistaz private torrent tracker.
-    """
-
-    type: Literal["avistaz"] = "avistaz"
-    """
-    Type value associated with this kind of indexer.
-    """
-
-    site: LowerCaseNonEmptyStr = "avistaz"  # type: ignore[assignment]
-
-    base_url: Optional[HttpUrl] = None
-    """
-    Base URL to use to access the site.
-
-    If undefined, use the default base URL.
-    """
-
-    username: NonEmptyStr
-    """
-    Username to authenticate as.
-    """
-
-    password: Password
-    """
-    Password for the authenticating user.
-    """
-
-    pid: Password
-    """
-    The PID associated with the AvistaZ account.
-
-    Can be retrieved from the from My Account or My Profile page.
-    """
-
-    freeleech_only: bool = False
-    """
-    Search freeleech only.
-    """
-
-    _implementation_name: str = "AvistaZ"
-    _allowed_sites: Set[str] = {"avistaz"}
-    _remote_map: List[RemoteMapEntry] = [
-        ("base_url", "baseUrl", {"is_field": True}),
-        ("username", "username", {"is_field": True}),
-        ("password", "password", {"is_field": True}),
-        ("pid", "pid", {"is_field": True}),
-        ("freeleech_only", "freeleechOnly", {"is_field": True}),
-    ]
-
-
-class BakabtIndexer(TorrentIndexer):
-    """
-    An indexer for monitoring the BakaBT anime torrent tracker.
-    """
-
-    type: Literal["bakabt"] = "bakabt"
-    """
-    Type value associated with this kind of indexer.
-    """
-
-    site: LowerCaseNonEmptyStr = "bakabt"  # type: ignore[assignment]
-
-    base_url: Optional[HttpUrl] = None
-    """
-    Base URL to use to access the site.
-
-    If undefined, use the default base URL.
-    """
-
-    username: NonEmptyStr
-    """
-    Username to authenticate as.
-    """
-
-    password: Password
-    """
-    Password for the authenticating user.
-    """
-
-    add_romaji_title: bool = True
-    """
-    Allow releases with titles in
-    [rо̄maji](https://en.wikipedia.org/wiki/Romanization_of_Japanese).
-    """
-
-    append_season: bool = False
-    """
-    Append the season, for Sonarr compatibility.
-    """
-
-    allow_adult_content: bool = False
-    """
-    Allow adult content releases.
-
-    This must also be enabled in the BakaBT profile settings.
-    """
-
-    _implementation_name: str = "BakaBT"
-    _allowed_sites: Set[str] = {"bakabt"}
-    _remote_map: List[RemoteMapEntry] = [
-        ("base_url", "baseUrl", {"is_field": True}),
-        ("username", "username", {"is_field": True}),
-        ("password", "password", {"is_field": True}),
-        ("add_romaji_title", "addRomajiTitle", {"is_field": True}),
-        ("append_season", "appendSeason", {"is_field": True}),
-        ("allow_adult_content", "adultContent", {"is_field": True}),
-    ]
-
-
-class BeyondhdIndexer(TorrentIndexer):
-    """
-    An indexer for monitoring the BeyondHD private torrent tracker for TV shows and movies.
-    """
-
-    type: Literal["beyondhd"] = "beyondhd"
-    """
-    Type value associated with this kind of indexer.
-    """
-
-    site: LowerCaseNonEmptyStr = "beyondhd"  # type: ignore[assignment]
-
-    base_url: Optional[HttpUrl] = None
-    """
-    Base URL to use to access the site.
-
-    If undefined, use the default base URL.
-    """
-
-    api_key: Password
-    """
-    API key used to authenticate with BeyondHD.
-
-    The key can be found in My Security => API Key.
-    """
-
-    rss_key: Password
-    """
-    RSS key used to subscribe to the BeyondHD RSS feed.
-
-    The key can be found in My Security => RSS Key.
-    """
-
-    _implementation_name: str = "BeyondHD"
-    _allowed_sites: Set[str] = {"beyondhd"}
-    _remote_map: List[RemoteMapEntry] = [
-        ("base_url", "baseUrl", {"is_field": True}),
-        ("api_key", "apiKey", {"is_field": True}),
-        ("rss_key", "rssKey", {"is_field": True}),
-    ]
-
-
-class BinsearchIndexer(UsenetIndexer):
-    """
-    An indexer for monitoring the BinSearch Usenet search engine.
-    """
-
-    type: Literal["binsearch"] = "binsearch"
-    """
-    Type value associated with this kind of indexer.
-    """
-
-    site: LowerCaseNonEmptyStr = "binsearch"  # type: ignore[assignment]
-
-    base_url: Optional[HttpUrl] = None
-    """
-    Base URL to use to access the site.
-
-    If undefined, use the default base URL.
-    """
-
-    _implementation_name: str = "BinSearch"
-    _allowed_sites: Set[str] = {"binsearch"}
-    _remote_map: List[RemoteMapEntry] = [("base_url", "baseUrl", {"is_field": True})]
-
-
-class BroadcasthenetIndexer(TorrentIndexer):
-    """
-    Indexer for monitoring the BroacasTheNet private torrent tracker.
-    """
-
-    type: Literal["broadcasthenet"] = "broadcasthenet"
-    """
-    Type value associated with this kind of indexer.
-    """
-
-    site: LowerCaseNonEmptyStr = "broadcasthenet"  # type: ignore[assignment]
-
-    base_url: Optional[HttpUrl] = None
-    """
-    Base URL to use to access the site.
-
-    If undefined, use the default base URL.
-    """
-
-    api_key: Password
-    """
-    BroadcasTheNet API key.
-    """
-
-    _implementation_name = "BroadcasTheNet"
-    _allowed_sites: Set[str] = {"broadcasthenet"}
-    _remote_map: List[RemoteMapEntry] = [
-        ("base_url", "baseUrl", {"is_field": True}),
-        ("api_key", "apiKey", {"is_field": True}),
-    ]
-
-
-IndexerType = Union[
-    RawIndexer,
-    AnimebytesIndexer,
-    AvistazIndexer,
-    BakabtIndexer,
-    BeyondhdIndexer,
-    BroadcasthenetIndexer,
-]
-
-INDEXER_TYPES: Tuple[Type[IndexerType], ...] = (
-    # RawIndexer is not included here because it is a special case.
-    AnimebytesIndexer,
-    AvistazIndexer,
-    BakabtIndexer,
-    BeyondhdIndexer,
-    BroadcasthenetIndexer,
-)
-
-INDEXER_TYPE_MAP: Dict[str, Type[IndexerType]] = {
-    indexer_type._implementation_name: indexer_type for indexer_type in INDEXER_TYPES
-}
+    def _delete_remote(self, tree: str, secrets: ProwlarrSecrets, indexer_id: int) -> None:
+        logger.info("%s: (...) -> (deleted)", tree)
+        with prowlarr_api_client(secrets=secrets) as api_client:
+            prowlarr.IndexerApi(api_client).delete_indexer(id=indexer_id)
 
 
 class IndexersSettings(ProwlarrConfigBase):
@@ -936,7 +436,7 @@ class IndexersSettings(ProwlarrConfigBase):
     If unsure, leave set at the default of `false`.
     """
 
-    definitions: Dict[str, Annotated[IndexerType, Field(discriminator="type")]] = {}
+    definitions: Dict[str, Indexer] = {}
     """
     Indexers to manage via Buildarr are defined here.
     """
@@ -950,13 +450,9 @@ class IndexersSettings(ProwlarrConfigBase):
                 if any(indexer["tags"] for indexer in indexers)
                 else {}
             )
-        definitions: Dict[str, IndexerType] = {}
+        definitions: Dict[str, Indexer] = {}
         for indexer in indexers:
-            try:
-                indexer_type: Type[IndexerType] = INDEXER_TYPE_MAP[indexer.implementation_name]
-            except KeyError:
-                indexer_type = RawIndexer
-            definitions[indexer.name] = indexer_type._from_remote(
+            definitions[indexer.name] = Indexer._from_remote(
                 tag_ids=tag_ids,
                 remote_attrs=indexer.to_dict(),
             )
