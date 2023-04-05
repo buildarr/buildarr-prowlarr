@@ -83,6 +83,19 @@ class Indexer(ProwlarrConfigBase):
     When set to `True`, the indexer is active and Prowlarr is making requests to it.
     """
 
+    sync_profile: NonEmptyStr
+    """
+    The application sync profile to use for this indexer.
+    """
+
+    redirect: bool = False
+    """
+    Redirect incoming download requests for the indexer, and pass the grab directly
+    instead of proxying the request via Prowlarr.
+
+    Only supported by some indexer types.
+    """
+
     indexer_priority: int = Field(25, ge=1, le=50)
     """
     Priority of this indexer to prefer one indexer over another in release tiebreaker scenarios.
@@ -115,10 +128,25 @@ class Indexer(ProwlarrConfigBase):
     secret_fields: Dict[str, Password] = {}
 
     @classmethod
-    def _get_base_remote_map(cls, tag_ids: Mapping[str, int]) -> List[RemoteMapEntry]:
+    def _get_base_remote_map(
+        cls,
+        sync_profile_ids: Mapping[str, int],
+        tag_ids: Mapping[str, int],
+    ) -> List[RemoteMapEntry]:
         return [
             ("type", "definitionName", {}),
             ("enable", "enable", {}),
+            (
+                "sync_profile",
+                "appProfileId",
+                {
+                    "decoder": lambda v: next(
+                        name for name, profile_id in sync_profile_ids.items() if profile_id == v
+                    ),
+                    "encoder": lambda v: sync_profile_ids[v],
+                },
+            ),
+            ("redirect", "redirect", {}),
             ("indexer_priority", "priority", {}),
             (
                 "tags",
@@ -147,9 +175,31 @@ class Indexer(ProwlarrConfigBase):
                 raise ValueError(f"Field '{name}' defined in both 'fields' and 'secret_fields'")
         return secret_fields
 
+    def _get_api_schema(
+        self,
+        api_indexer_schemas: List[prowlarr.IndexerResource],
+    ) -> Dict[str, Any]:
+        return {
+            k: v
+            for k, v in (
+                next(
+                    (s for s in api_indexer_schemas if s.definition_name == self.type),
+                )
+                .to_dict()
+                .items()
+            )
+            if k not in ["id", "name", "added"]
+        }
+
     @classmethod
-    def _from_remote(cls, tag_ids: Mapping[str, int], remote_attrs: Mapping[str, Any]) -> Self:
-        remote_map = cls._get_base_remote_map(tag_ids)
+    def _from_remote(
+        cls,
+        sync_profile_ids: Mapping[str, int],
+        tag_ids: Mapping[str, int],
+        remote_attrs: Mapping[str, Any],
+    ) -> Self:
+        #
+        remote_map = cls._get_base_remote_map(sync_profile_ids, tag_ids)
         remote_map_fields = set(
             (entry[1] for entry in remote_map if entry[2].get("is_field", False)),
         )
@@ -168,8 +218,19 @@ class Indexer(ProwlarrConfigBase):
                 continue
             name: str = field["name"]
             lowercase_name = name.lower()
-            value: Any = field["value"]
-            if isinstance(value, str) and any(
+            #
+            if field["type"] == "select" and field["value"] is not None:
+                if field.get("selectOptionsProviderAction", None) == "getUrls":
+                    value: Any = remote_attrs["indexerUrls"][field["value"]]
+                else:
+                    try:
+                        value = field["selectOptions"][field["value"]]["name"]
+                    except KeyError:
+                        value = field["value"]
+            else:
+                value = field["value"]
+            #
+            if field["type"] == "textbox" and any(
                 phrase in lowercase_name for phrase in ("key", "pass")
             ):
                 secret_fields[name] = value
@@ -181,27 +242,19 @@ class Indexer(ProwlarrConfigBase):
             secret_fields=secret_fields,
         )
 
-    def _get_schema(self, indexer_schema: List[prowlarr.IndexerResource]) -> Dict[str, Any]:
-        return {
-            k: v
-            for k, v in (
-                next(s for s in indexer_schema if s.definition_name == self.type).to_dict().items()
-            )
-            if k not in ["id", "name", "added"]
-        }
-
     def _create_remote(
         self,
         tree: str,
         secrets: ProwlarrSecrets,
+        api_indexer_schemas: List[prowlarr.IndexerResource],
+        sync_profile_ids: Mapping[str, int],
         tag_ids: Mapping[str, int],
-        indexer_schema: List[prowlarr.IndexerResource],
         indexer_name: str,
     ) -> None:
         #
-        schema = self._get_schema(indexer_schema)
+        api_schema = self._get_api_schema(api_indexer_schemas)
         #
-        remote_map = self._get_base_remote_map(tag_ids)
+        remote_map = self._get_base_remote_map(sync_profile_ids, tag_ids)
         remote_map_fields = set(
             (entry[1] for entry in remote_map if entry[2].get("is_field", False)),
         )
@@ -211,7 +264,7 @@ class Indexer(ProwlarrConfigBase):
         del common_attrs["fields"]
         #
         fields: List[Dict[str, Any]] = []
-        for field in schema["fields"]:
+        for field in api_schema["fields"]:
             name = field["name"]
             #
             if name in remote_map_fields:
@@ -233,6 +286,23 @@ class Indexer(ProwlarrConfigBase):
                 attr_name = "fields"
                 format_value = repr(value)
                 raw_value = value
+            #
+            if field["type"] == "select" and field["value"] is not None:
+                if field.get("selectOptionsProviderAction", None) == "getUrls":
+                    raw_value = api_schema["indexerUrls"].index(raw_value)
+                elif "selectOptions" in field:
+                    for option in field["selectOptions"]:
+                        if option["name"].lower() == raw_value.lower():
+                            raw_value = option["value"]
+                            break
+                    else:
+                        raise ValueError(
+                            f"Invalid field value '{raw_value}' "
+                            "(expected values: "
+                            f"{', '.join(repr(f['name']) for f in field['selectOptions'])}"
+                            ")",
+                        )
+            #
             logger.info(
                 "%s.%s[%s]: %s (created)",
                 tree,
@@ -246,7 +316,7 @@ class Indexer(ProwlarrConfigBase):
             prowlarr.IndexerApi(api_client).create_indexer(
                 indexer_resource=prowlarr.IndexerResource.from_dict(
                     {
-                        **schema,
+                        **api_schema,
                         "name": indexer_name,
                         **common_attrs,
                         "fields": fields,
@@ -259,16 +329,17 @@ class Indexer(ProwlarrConfigBase):
         tree: str,
         secrets: ProwlarrSecrets,
         remote: Self,
+        api_indexer_schemas: List[prowlarr.IndexerResource],
+        sync_profile_ids: Mapping[str, int],
         tag_ids: Mapping[str, int],
-        indexer_schema: List[prowlarr.IndexerResource],
         indexer_id: int,
         indexer_name: str,
         indexer_added: datetime,
     ) -> bool:
         #
-        schema = self._get_schema(indexer_schema)
+        api_schema = self._get_api_schema(api_indexer_schemas)
         #
-        remote_map = self._get_base_remote_map(tag_ids)
+        remote_map = self._get_base_remote_map(sync_profile_ids, tag_ids)
         remote_map_fields = set(
             (entry[1] for entry in remote_map if entry[2].get("is_field", False)),
         )
@@ -285,8 +356,9 @@ class Indexer(ProwlarrConfigBase):
         fields: List[Dict[str, Any]] = []
         local_value: Any
         remote_value: Any
-        for field in schema["fields"]:
+        for field in api_schema["fields"]:
             name = field["name"]
+            case_insensitive = False
             #
             if name in remote_map_fields:
                 for f in common_fields:
@@ -298,74 +370,87 @@ class Indexer(ProwlarrConfigBase):
                 continue
             #
             if name in self.secret_fields:
+                attr_name = "fields"
                 local_value = self.secret_fields[name]
                 try:
                     remote_value = remote.secret_fields[name]
                 except KeyError:
                     remote_value = Password(remote.fields[name])
-                if local_value != remote_value:
-                    logger.info(
-                        "%s.secret_fields[%s]: %s -> %s",
-                        tree,
-                        repr(name),
-                        str(remote_value),
-                        str(local_value),
-                    )
-                    changed = True
-                else:
-                    logger.debug(
-                        "%s.secret_fields[%s]: %s (up to date)",
-                        tree,
-                        repr(name),
-                        repr(local_value),
-                    )
-                field_value = local_value.get_secret_value()
-            #
-            elif name in self.fields:
+                local_formatted_value = str(local_value)
+                remote_formatted_value = str(remote_value)
+                local_raw_value = local_value.get_secret_value()
+                remote_raw_value = remote_value.get_secret_value()
+            else:
+                attr_name = "secret_fields"
                 local_value = self.fields[name]
                 try:
                     remote_value = remote.secret_fields[name].get_secret_value()
                 except KeyError:
                     remote_value = remote.fields[name]
-                if local_value != remote_value:
-                    logger.info(
-                        "%s.fields[%s]: %s -> %s",
-                        tree,
-                        repr(name),
-                        repr(remote_value),
-                        repr(local_value),
-                    )
-                    changed = True
-                else:
-                    logger.debug(
-                        "%s.fields[%s]: %s (up to date)",
-                        tree,
-                        repr(name),
-                        repr(local_value),
-                    )
-                field_value = local_value
+                local_formatted_value = local_value
+                remote_formatted_value = remote_value
+                local_raw_value = local_value
+                remote_raw_value = remote_value
             #
-            elif name in remote.secret_fields:
-                remote_value = remote.secret_fields[name]
-                logger.debug(
-                    "%s.secret_fields[%s]: %s (unmanaged)",
-                    tree,
-                    repr(name),
-                    str(remote_value),
-                )
-                field_value = remote_value.get_secret_value()
+            if field["type"] == "select" and field["value"] is not None:
+                if field.get("selectOptionsProviderAction", None) == "getUrls":
+                    local_raw_value = api_schema["indexerUrls"].index(local_raw_value)
+                    remote_raw_value = api_schema["indexerUrls"].index(remote_raw_value)
+                elif "selectOptions" in field:
+                    case_insensitive = True
+                    for option in field["selectOptions"]:
+                        if option["name"].lower() == local_raw_value.lower():
+                            local_raw_value = option["value"]
+                            break
+                    else:
+                        raise ValueError(
+                            f"Invalid local field value '{local_raw_value}' "
+                            "(expected values: "
+                            f"{', '.join(repr(f['name']) for f in field['selectOptions'])}"
+                            ")",
+                        )
+                    for option in field["selectOptions"]:
+                        if option["name"].lower() == remote_raw_value.lower():
+                            remote_raw_value = option["value"]
+                            break
+                    else:
+                        raise RuntimeError(
+                            f"Invalid remote field value '{local_raw_value}' "
+                            "(expected values: "
+                            f"{', '.join(repr(f['name']) for f in field['selectOptions'])}"
+                            ")",
+                        )
             #
+            if case_insensitive:
+                value_changed = local_value.lower() != local_value.lower()
             else:
-                remote_value = remote.fields[name]
-                logger.debug(
-                    "%s.fields[%s]: %s (unmanaged)",
+                value_changed = local_value != remote_value
+            if value_changed:
+                logger.info(
+                    "%s.secret_fields[%s]: %s -> %s",
                     tree,
                     repr(name),
-                    repr(remote_value),
+                    repr(remote_formatted_value),
+                    repr(local_formatted_value),
                 )
-                field_value = remote_value
+                raw_value = local_raw_value
+                changed = True
+            else:
+                logger.debug(
+                    "%s.%s[%s]: %s (%s)",
+                    tree,
+                    attr_name,
+                    repr(name),
+                    repr(local_formatted_value),
+                    (
+                        "up to date"
+                        if name in self.fields or name in self.secret_fields
+                        else "unmanaged"
+                    ),
+                )
+                raw_value = remote_raw_value
             #
-            fields.append({**field, "value": field_value})
+            fields.append({**field, "value": raw_value})
         #
         if changed:
             with prowlarr_api_client(secrets=secrets) as api_client:
@@ -376,7 +461,7 @@ class Indexer(ProwlarrConfigBase):
                             "id": indexer_id,
                             "name": indexer_name,
                             "added": zulu_datetime_format(indexer_added),
-                            **schema,
+                            **api_schema,
                             **common_attrs,
                             "fields": fields,
                         },
@@ -449,6 +534,10 @@ class IndexersSettings(ProwlarrConfigBase):
     def from_remote(cls, secrets: ProwlarrSecrets) -> Self:
         with prowlarr_api_client(secrets=secrets) as api_client:
             indexers = prowlarr.IndexerApi(api_client).list_indexer()
+            sync_profile_ids: Dict[str, int] = {
+                profile.name: profile.id
+                for profile in prowlarr.AppProfileApi(api_client).list_app_profile()
+            }
             tag_ids: Dict[str, int] = (
                 {tag.label: tag.id for tag in prowlarr.TagApi(api_client).list_tag()}
                 if any(indexer["tags"] for indexer in indexers)
@@ -457,6 +546,7 @@ class IndexersSettings(ProwlarrConfigBase):
         definitions: Dict[str, Indexer] = {}
         for indexer in indexers:
             definitions[indexer.name] = Indexer._from_remote(
+                sync_profile_ids=sync_profile_ids,
                 tag_ids=tag_ids,
                 remote_attrs=indexer.to_dict(),
             )
@@ -474,9 +564,13 @@ class IndexersSettings(ProwlarrConfigBase):
         #
         with prowlarr_api_client(secrets=secrets) as api_client:
             indexer_api = prowlarr.IndexerApi(api_client)
-            indexer_schema = indexer_api.list_indexer_schema()
+            api_indexer_schemas = indexer_api.list_indexer_schema()
             indexer_api_objs: Dict[str, prowlarr.IndexerResource] = {
                 indexer.name: indexer for indexer in indexer_api.list_indexer()
+            }
+            sync_profile_ids: Dict[str, int] = {
+                profile.name: profile.id
+                for profile in prowlarr.AppProfileApi(api_client).list_app_profile()
             }
             tag_ids: Dict[str, int] = (
                 {tag.label: tag.id for tag in prowlarr.TagApi(api_client).list_tag()}
@@ -492,8 +586,9 @@ class IndexersSettings(ProwlarrConfigBase):
                 indexer._create_remote(
                     tree=indexer_tree,
                     secrets=secrets,
+                    api_indexer_schemas=api_indexer_schemas,
+                    sync_profile_ids=sync_profile_ids,
                     tag_ids=tag_ids,
-                    indexer_schema=indexer_schema,
                     indexer_name=indexer_name,
                 )
                 changed = True
@@ -502,8 +597,9 @@ class IndexersSettings(ProwlarrConfigBase):
                 tree=indexer_tree,
                 secrets=secrets,
                 remote=remote.definitions[indexer_name],  # type: ignore[arg-type]
+                api_indexer_schemas=api_indexer_schemas,
+                sync_profile_ids=sync_profile_ids,
                 tag_ids=tag_ids,
-                indexer_schema=indexer_schema,
                 indexer_id=indexer_api_objs[indexer_name].id,
                 indexer_name=indexer_name,
                 indexer_added=indexer_api_objs[indexer_name].added,

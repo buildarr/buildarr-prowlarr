@@ -90,7 +90,9 @@ class Proxy(ProwlarrConfigBase):
             k: v
             for k, v in next(
                 s for s in schemas if s.implementation_name.lower() == self.type.lower()
-            ).to_dict().items()
+            )
+            .to_dict()
+            .items()
             if k not in ["id", "name"]
         }
 
@@ -141,11 +143,7 @@ class Proxy(ProwlarrConfigBase):
                     field["name"]: field["value"] for field in updated_attrs["fields"]
                 }
                 updated_attrs["fields"] = [
-                    (
-                        {**f, "value": field_values[f["name"]]}
-                        if f["name"] in field_values
-                        else f
-                    )
+                    ({**f, "value": field_values[f["name"]]} if f["name"] in field_values else f)
                     for f in api_schema["fields"]
                 ]
             remote_attrs = {**api_proxy.to_dict(), **updated_attrs}
@@ -365,16 +363,14 @@ class Socks5Proxy(Proxy):
     ]
 
 
-PROXY_TYPES: Tuple[Type[Proxy], ...] = (
-    FlaresolverrProxy,
-    HttpProxy,
-    Socks4Proxy,
-    Socks5Proxy,
-)
-
 PROXY_TYPE_MAP: Dict[str, Type[Proxy]] = {
-    proxy_type.type: proxy_type for proxy_type in PROXY_TYPES
+    "flaresolverr": FlaresolverrProxy,
+    "http": HttpProxy,
+    "socks4": Socks4Proxy,
+    "socks5": Socks5Proxy,
 }
+
+PROXY_TYPES: Tuple[Type[Proxy], ...] = tuple(PROXY_TYPE_MAP.values())
 
 ProxyType = Union[
     FlaresolverrProxy,
@@ -434,8 +430,7 @@ class ProxiesSettings(ProwlarrConfigBase):
             indexer_proxy_api = prowlarr.IndexerProxyApi(api_client)
             api_proxy_schemas = indexer_proxy_api.list_indexer_proxy_schema()
             api_proxies = {
-                api_proxy.name: api_proxy
-                for api_proxy in indexer_proxy_api.list_indexer_proxy()
+                api_proxy.name: api_proxy for api_proxy in indexer_proxy_api.list_indexer_proxy()
             }
             tag_ids: Dict[str, int] = (
                 {tag.label: tag.id for tag in prowlarr.TagApi(api_client).list_tag()}

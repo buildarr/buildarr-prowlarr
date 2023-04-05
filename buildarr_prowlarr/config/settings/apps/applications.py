@@ -147,7 +147,9 @@ class Application(ProwlarrConfigBase):
             k: v
             for k, v in next(
                 s for s in schemas if s.implementation_name.lower() == self.type.lower()
-            ).to_dict().items()
+            )
+            .to_dict()
+            .items()
             if k not in ["id", "name"]
         }
 
@@ -499,19 +501,17 @@ class WhisparrApplication(Application):
     _remote_map: List[RemoteMapEntry] = [("api_key", "apiKey", {"is_field": True})]
 
 
-APPLICATION_TYPES: Tuple[Type[Application], ...] = (
-    LazylibraryApplication,
-    LidarrApplication,
-    MylarApplication,
-    RadarrApplication,
-    ReadarrApplication,
-    SonarrApplication,
-    WhisparrApplication,
-)
-
 APPLICATION_TYPE_MAP: Dict[str, Type[Application]] = {
-    application_type.type: application_type for application_type in APPLICATION_TYPES
+    "lazylibrary": LazylibraryApplication,
+    "lidarr": LidarrApplication,
+    "mylar": MylarApplication,
+    "radarr": RadarrApplication,
+    "readarr": ReadarrApplication,
+    "sonarr": SonarrApplication,
+    "whisparr": WhisparrApplication,
 }
+
+APPLICATION_TYPES: Tuple[Type[Application], ...] = tuple(APPLICATION_TYPE_MAP.values())
 
 ApplicationType = Union[
     LazylibraryApplication,
@@ -559,8 +559,8 @@ class ApplicationsSettings(ProwlarrConfigBase):
             )
         return cls(
             definitions={
-                api_application["name"]: APPLICATION_TYPE_MAP[
-                    api_application["implementationName"].lower()
+                api_application.name: APPLICATION_TYPE_MAP[
+                    api_application.implementation_name.lower()
                 ]._from_remote(
                     category_ids=category_ids,
                     tag_ids=tag_ids,

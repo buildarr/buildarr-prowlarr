@@ -21,8 +21,9 @@ from __future__ import annotations
 
 from ...types import ProwlarrConfigBase
 from .applications import ApplicationsSettings
+from .sync_profiles import SyncProfilesSettings
 
 
 class ProwlarrAppsSettings(ProwlarrConfigBase):
     applications: ApplicationsSettings = ApplicationsSettings()
-    # sync_profiles: SyncProfilesSettings = SyncProfilesSettings()
+    sync_profiles: SyncProfilesSettings = SyncProfilesSettings()
