@@ -13,7 +13,7 @@
 
 
 """
-Prowlarr plugin configuration.
+Prowlarr plugin indexer configuration.
 """
 
 
@@ -25,10 +25,7 @@ from typing_extensions import Self
 
 from ...types import ProwlarrConfigBase
 from .indexers import IndexersSettings
-
-# from .apps import ProwlarrAppsSettings
-# from .download_clients import ProwlarrDownloadClientsSettings
-# from .proxies import ProwlarrProxiesSettings
+from .proxies import ProxiesSettings
 
 if TYPE_CHECKING:
     from ....secrets import ProwlarrSecrets
@@ -36,7 +33,7 @@ if TYPE_CHECKING:
 
 class ProwlarrIndexersSettings(ProwlarrConfigBase):
     indexers: IndexersSettings = IndexersSettings()
-    # proxies = ProxiesSettings()
+    proxies: ProxiesSettings = ProxiesSettings()
 
     def update_remote(
         self,
@@ -50,12 +47,12 @@ class ProwlarrIndexersSettings(ProwlarrConfigBase):
         #    are no longer referenced elsewhere.
         return any(
             [
-                # self.proxies.update_remote(
-                #     f"{tree}.proxies",
-                #     secrets,
-                #     remote.proxies,
-                #     check_unmanaged=check_unmanaged,
-                # ),
+                self.proxies.update_remote(
+                    f"{tree}.proxies",
+                    secrets,
+                    remote.proxies,
+                    check_unmanaged=check_unmanaged,
+                ),
                 self.indexers.update_remote(
                     f"{tree}.indexers",
                     secrets,

@@ -25,3 +25,4 @@ from .applications import ApplicationsSettings
 
 class ProwlarrAppsSettings(ProwlarrConfigBase):
     applications: ApplicationsSettings = ApplicationsSettings()
+    # sync_profiles: SyncProfilesSettings = SyncProfilesSettings()
