@@ -43,8 +43,8 @@ class ProwlarrSettings(ProwlarrConfigBase):
     """
 
     indexers: ProwlarrIndexersSettings = ProwlarrIndexersSettings()
-    apps = ProwlarrAppsSettings()
-    # download_clients = ProwlarrDownloadClientsSettings()
+    apps: ProwlarrAppsSettings = ProwlarrAppsSettings()
+    # download_clients: ProwlarrDownloadClients = ProwlarrDownloadClientsSettings()
     notifications: ProwlarrNotificationsSettings = ProwlarrNotificationsSettings()
     tags: ProwlarrTagsSettings = ProwlarrTagsSettings()
     general: ProwlarrGeneralSettings = ProwlarrGeneralSettings()

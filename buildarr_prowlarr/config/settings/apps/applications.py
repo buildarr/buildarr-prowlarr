@@ -30,10 +30,10 @@ from buildarr.types import BaseEnum, InstanceName, NonEmptyStr, Password
 from pydantic import AnyHttpUrl, Field, SecretStr, validator
 from typing_extensions import Annotated, Self
 
-from ...api import prowlarr_api_client
-from ...secrets import ProwlarrSecrets
-from ...types import ArrApiKey, LowerCaseNonEmptyStr
-from ..types import ProwlarrConfigBase
+from ....api import prowlarr_api_client
+from ....secrets import ProwlarrSecrets
+from ....types import ArrApiKey, LowerCaseNonEmptyStr
+from ...types import ProwlarrConfigBase
 
 logger = getLogger(__name__)
 
@@ -524,7 +524,7 @@ ApplicationType = Union[
 ]
 
 
-class ProwlarrAppsSettings(ProwlarrConfigBase):
+class ApplicationsSettings(ProwlarrConfigBase):
     """
     Manage application links in Prowlarr.
     """
