@@ -28,7 +28,7 @@ from buildarr.types import NonEmptyStr, Port
 from typing_extensions import Self
 
 from ..api import prowlarr_api_client
-from ..types import ProwlarrApiKey, ProwlarrProtocol
+from ..types import ArrApiKey, ProwlarrProtocol
 from .settings import ProwlarrSettings
 
 if TYPE_CHECKING:
@@ -111,7 +111,7 @@ class ProwlarrInstanceConfig(_ProwlarrInstanceConfig):
     Communication protocol to use to connect to Prowlarr.
     """
 
-    api_key: Optional[ProwlarrApiKey] = None
+    api_key: Optional[ArrApiKey] = None
     """
     API key to use to authenticate with the Prowlarr instance.
 

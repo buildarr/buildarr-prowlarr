@@ -35,9 +35,9 @@ class LowerCaseNonEmptyStr(LowerCaseStr):
     strip_whitespace = True
 
 
-class ProwlarrApiKey(SecretStr):
+class ArrApiKey(SecretStr):
     """
-    Constrained secret string type for a Prowlarr API key.
+    Constrained secret string type for an Arr stack application API key.
     """
 
     min_length = 32

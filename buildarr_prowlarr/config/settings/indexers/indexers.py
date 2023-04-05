@@ -184,9 +184,9 @@ class Indexer(ProwlarrConfigBase):
     def _get_schema(self, indexer_schema: List[prowlarr.IndexerResource]) -> Dict[str, Any]:
         return {
             k: v
-            for k, v in next(
-                s for s in indexer_schema if s.definition_name == self.type
-            ).to_dict().items()
+            for k, v in (
+                next(s for s in indexer_schema if s.definition_name == self.type).to_dict().items()
+            )
             if k not in ["id", "name", "added"]
         }
 

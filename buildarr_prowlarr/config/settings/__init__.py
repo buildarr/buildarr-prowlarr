@@ -24,15 +24,14 @@ from typing import TYPE_CHECKING
 from typing_extensions import Self
 
 from ..types import ProwlarrConfigBase
+from .apps import ProwlarrAppsSettings
 from .general import ProwlarrGeneralSettings
 from .indexers import ProwlarrIndexersSettings
 from .notifications import ProwlarrNotificationsSettings
 from .tags import ProwlarrTagsSettings
 from .ui import ProwlarrUISettings
 
-# from .apps import ProwlarrAppsSettings
 # from .download_clients import ProwlarrDownloadClientsSettings
-# from .proxies import ProwlarrProxiesSettings
 
 if TYPE_CHECKING:
     from ...secrets import ProwlarrSecrets
@@ -44,8 +43,7 @@ class ProwlarrSettings(ProwlarrConfigBase):
     """
 
     indexers: ProwlarrIndexersSettings = ProwlarrIndexersSettings()
-    # proxies = ProwlarrProxiesSettings()
-    # apps = ProwlarrAppsSettings()
+    apps = ProwlarrAppsSettings()
     # download_clients = ProwlarrDownloadClientsSettings()
     notifications: ProwlarrNotificationsSettings = ProwlarrNotificationsSettings()
     tags: ProwlarrTagsSettings = ProwlarrTagsSettings()
@@ -70,24 +68,18 @@ class ProwlarrSettings(ProwlarrConfigBase):
                     remote.tags,
                     check_unmanaged=check_unmanaged,
                 ),
-                # self.proxies.update_remote(
-                #     f"{tree}.proxies",
-                #     secrets,
-                #     remote.proxies,
-                #     check_unmanaged=check_unmanaged,
-                # ),
                 self.indexers.update_remote(
                     f"{tree}.indexers",
                     secrets,
                     remote.indexers,
                     check_unmanaged=check_unmanaged,
                 ),
-                # self.apps.update_remote(
-                #     f"{tree}.apps",
-                #     secrets,
-                #     remote.apps,
-                #     check_unmanaged=check_unmanaged,
-                # ),
+                self.apps.update_remote(
+                    f"{tree}.apps",
+                    secrets,
+                    remote.apps,
+                    check_unmanaged=check_unmanaged,
+                ),
                 # self.download_clients.update_remote(
                 #     f"{tree}.download_clients",
                 #     secrets,

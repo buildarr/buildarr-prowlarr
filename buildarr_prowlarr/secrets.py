@@ -29,7 +29,7 @@ from buildarr.types import NonEmptyStr, Port
 from prowlarr.exceptions import UnauthorizedException
 
 from .api import get_initialize_js, prowlarr_api_client
-from .types import ProwlarrApiKey, ProwlarrProtocol
+from .types import ArrApiKey, ProwlarrProtocol
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -53,7 +53,7 @@ class ProwlarrSecrets(_ProwlarrSecrets):
     hostname: NonEmptyStr
     port: Port
     protocol: ProwlarrProtocol
-    api_key: ProwlarrApiKey
+    api_key: ArrApiKey
 
     @property
     def host_url(self) -> str:
