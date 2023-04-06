@@ -1,6 +1,6 @@
 # Tags
 
-##### ::: buildarr_sonarr.config.tags.SonarrTagsSettingsConfig
+##### ::: buildarr_prowlarr.config.settings.tags.ProwlarrTagsSettings
     options:
       members:
         - delete_unused

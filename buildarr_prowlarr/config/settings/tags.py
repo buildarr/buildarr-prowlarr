@@ -20,7 +20,7 @@ Prowlarr plugin tags settings configuration.
 from __future__ import annotations
 
 from logging import getLogger
-from typing import Dict, List
+from typing import Dict, Set
 
 import prowlarr
 
@@ -36,7 +36,7 @@ logger = getLogger(__name__)
 
 class ProwlarrTagsSettings(ProwlarrConfigBase):
     """
-    Tags are used to associate media files with certain resources (e.g. download clients).
+    Tags are used to associate media files with certain resources (e.g. indexers).
 
     ```yaml
     prowlarr:
@@ -62,7 +62,7 @@ class ProwlarrTagsSettings(ProwlarrConfigBase):
     so in most cases there is no need to enable this option.
     """
 
-    definitions: List[NonEmptyStr] = []
+    definitions: Set[NonEmptyStr] = set()
     """
     Define tags that are used within Buildarr here.
 

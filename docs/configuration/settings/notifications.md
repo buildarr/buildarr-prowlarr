@@ -1,23 +1,16 @@
-# Connect
+# Notifications
 
-Sonarr supports configuring connections to external applications and services.
+Prowlarr supports pushing notifications to external applications and services.
 
-These are not only for Sonarr to communicate with the outside world, they can also be useful for monitoring
-since the user can be alerted by a variety of possible service when some kind of event (or problem)
-occurs in Sonarr.
+These are not only for Prowlarr to communicate with the outside world, they can also be useful
+for monitoring since the user can be alerted, by a service of their choice, when
+some kind of event (or problem) occurs.
 
-## Configuring connections
+## Configuration
 
-##### ::: buildarr_sonarr.config.connect.NotificationTriggers
+##### ::: buildarr_prowlarr.config.settings.notifications.NotificationTriggers
     options:
       members:
-        - on_grab
-        - on_import
-        - on_upgrade
-        - on_rename
-        - on_series_delete
-        - on_episode_file_delete
-        - on_episode_file_delete_for_upgrade
         - on_health_issue
         - include_health_warnings
         - on_application_update
@@ -26,7 +19,7 @@ occurs in Sonarr.
 
 ## Boxcar
 
-##### ::: buildarr_sonarr.config.connect.BoxcarConnection
+##### ::: buildarr_prowlarr.config.settings.notifications.BoxcarNotification
     options:
       members:
         - type
@@ -36,7 +29,7 @@ occurs in Sonarr.
 
 ## Custom Script
 
-##### ::: buildarr_sonarr.config.connect.CustomscriptConnection
+##### ::: buildarr_prowlarr.config.settings.notifications.CustomscriptNotification
     options:
       members:
         - type
@@ -46,7 +39,7 @@ occurs in Sonarr.
 
 ## Discord
 
-##### ::: buildarr_sonarr.config.connect.DiscordConnection
+##### ::: buildarr_prowlarr.config.settings.notifications.DiscordNotification
     options:
       members:
         - type
@@ -61,7 +54,7 @@ occurs in Sonarr.
 
 ## Email
 
-##### ::: buildarr_sonarr.config.connect.EmailConnection
+##### ::: buildarr_prowlarr.config.settings.notifications.EmailNotification
     options:
       members:
         - type
@@ -77,24 +70,9 @@ occurs in Sonarr.
       show_root_heading: false
       show_source: false
 
-## Emby
-
-##### ::: buildarr_sonarr.config.connect.EmbyConnection
-    options:
-      members:
-        - type
-        - host
-        - port
-        - use_ssl
-        - api_key
-        - send_notifications
-        - update_library
-      show_root_heading: false
-      show_source: false
-
 ## Gotify
 
-##### ::: buildarr_sonarr.config.connect.GotifyConnection
+##### ::: buildarr_prowlarr.config.settings.notifications.GotifyNotification
     options:
       members:
         - type
@@ -106,7 +84,7 @@ occurs in Sonarr.
 
 ## Join
 
-##### ::: buildarr_sonarr.config.connect.JoinConnection
+##### ::: buildarr_prowlarr.config.settings.notifications.JoinNotification
     options:
       members:
         - type
@@ -116,88 +94,19 @@ occurs in Sonarr.
       show_root_heading: false
       show_source: false
 
-## Kodi (XBMC)
+## Notifiarr
 
-##### ::: buildarr_sonarr.config.connect.KodiConnection
-    options:
-      members:
-        - type
-        - host
-        - port
-        - use_ssl
-        - username
-        - password
-        - gui_notification
-        - display_time
-        - update_library
-        - clean_library
-        - always_update
-      show_root_heading: false
-      show_source: false
-
-## Mailgun
-
-##### ::: buildarr_sonarr.config.connect.MailgunConnection
+##### ::: buildarr_prowlarr.config.settings.notifications.NotifiarrNotification
     options:
       members:
         - type
         - api_key
-        - use_eu_endpoint
-        - from_address
-        - sender_domain
-        - recipient_addresses
-      show_root_heading: false
-      show_source: false
-
-## Plex Home Theater
-
-##### ::: buildarr_sonarr.config.connect.PlexHomeTheaterConnection
-    options:
-      members:
-        - type
-        - host
-        - port
-        - use_ssl
-        - username
-        - password
-        - gui_notification
-        - display_time
-        - update_library
-        - clean_library
-        - always_update
-      show_root_heading: false
-      show_source: false
-
-## Plex Media Center
-
-##### ::: buildarr_sonarr.config.connect.PlexMediaCenterConnection
-    options:
-      members:
-        - type
-        - host
-        - port
-        - username
-        - password
-      show_root_heading: false
-      show_source: false
-
-## Plex Media Server
-
-##### ::: buildarr_sonarr.config.connect.PlexMediaServerConnection
-    options:
-      members:
-        - type
-        - host
-        - port
-        - use_ssl
-        - auth_token
-        - update_library
       show_root_heading: false
       show_source: false
 
 ## Prowl
 
-##### ::: buildarr_sonarr.config.connect.ProwlConnection
+##### ::: buildarr_prowlarr.config.settings.notifications.ProwlNotification
     options:
       members:
         - type
@@ -208,7 +117,7 @@ occurs in Sonarr.
 
 ## Pushbullet
 
-##### ::: buildarr_sonarr.config.connect.PushbulletConnection
+##### ::: buildarr_prowlarr.config.settings.notifications.PushbulletNotification
     options:
       members:
         - type
@@ -221,7 +130,7 @@ occurs in Sonarr.
 
 ## Pushover
 
-##### ::: buildarr_sonarr.config.connect.PushoverConnection
+##### ::: buildarr_prowlarr.config.settings.notifications.PushoverNotification
     options:
       members:
         - type
@@ -237,7 +146,7 @@ occurs in Sonarr.
 
 ## SendGrid
 
-##### ::: buildarr_sonarr.config.connect.SendgridConnection
+##### ::: buildarr_prowlarr.config.settings.notifications.SendgridNotification
     options:
       members:
         - type
@@ -249,7 +158,7 @@ occurs in Sonarr.
 
 ## Slack
 
-##### ::: buildarr_sonarr.config.connect.SlackConnection
+##### ::: buildarr_prowlarr.config.settings.notifications.SlackNotification
     options:
       members:
         - type
@@ -260,19 +169,9 @@ occurs in Sonarr.
       show_root_heading: false
       show_source: false
 
-## Synology Indexer
-
-##### ::: buildarr_sonarr.config.connect.SynologyIndexerConnection
-    options:
-      members:
-        - type
-        - update_library
-      show_root_heading: false
-      show_source: false
-
 ## Telegram
 
-##### ::: buildarr_sonarr.config.connect.TelegramConnection
+##### ::: buildarr_prowlarr.config.settings.notifications.TelegramNotification
     options:
       members:
         - type
@@ -282,22 +181,9 @@ occurs in Sonarr.
       show_root_heading: false
       show_source: false
 
-## Trakt
-
-##### ::: buildarr_sonarr.config.connect.TraktConnection
-    options:
-      members:
-        - type
-        - access_token
-        - refresh_token
-        - expires
-        - auth_user
-      show_root_heading: false
-      show_source: false
-
 ## Twitter
 
-##### ::: buildarr_sonarr.config.connect.TwitterConnection
+##### ::: buildarr_prowlarr.config.settings.notifications.TwitterNotification
     options:
       members:
         - type
@@ -312,7 +198,7 @@ occurs in Sonarr.
 
 ## Webhook
 
-##### ::: buildarr_sonarr.config.connect.WebhookConnection
+##### ::: buildarr_prowlarr.config.settings.notifications.WebhookNotification
     options:
       members:
         - type

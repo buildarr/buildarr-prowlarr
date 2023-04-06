@@ -1,16 +1,16 @@
 # General
 
-General configuration for Sonarr are separated by category.
+General configuration for Prowlarr are separated by category.
 
 ```yaml
-sonarr:
+prowlarr:
   settings:
     general:
       host:
         bind_address: "*"
-        port: 8989
+        port: 9696
         url_base: null
-        instance_name: "Sonarr (Example)"
+        instance_name: "Prowlarr (Example)"
       security:
         authentication: "none"
       proxy:
@@ -20,7 +20,7 @@ sonarr:
       analytics:
         send_anonymous_usage_data: false
       updates:
-        branch: "main"
+        branch: "develop"
         automatic: false
         mechanism: "docker"
       backup:
@@ -29,12 +29,12 @@ sonarr:
         retention: 28
 ```
 
-Some of the settings may affect Buildarr's ability to connect with the Sonarr instance.
+Some of the settings may affect Buildarr's ability to connect with the Prowlarr instance.
 Take care when changing these settings.
 
 ## Host
 
-##### ::: buildarr_sonarr.config.general.HostGeneralSettings
+##### ::: buildarr_prowlarr.config.settings.general.HostGeneralSettings
     options:
       members:
         - bind_address
@@ -48,7 +48,7 @@ Take care when changing these settings.
 
 ## Security
 
-##### ::: buildarr_sonarr.config.general.SecurityGeneralSettings
+##### ::: buildarr_prowlarr.config.settings.general.SecurityGeneralSettings
     options:
       members:
         - authentication
@@ -60,7 +60,7 @@ Take care when changing these settings.
 
 ## Proxy
 
-##### ::: buildarr_sonarr.config.general.ProxyGeneralSettings
+##### ::: buildarr_prowlarr.config.settings.general.ProxyGeneralSettings
     options:
       members:
         - enable
@@ -76,7 +76,7 @@ Take care when changing these settings.
 
 ## Logging
 
-##### ::: buildarr_sonarr.config.general.LoggingGeneralSettings
+##### ::: buildarr_prowlarr.config.settings.general.LoggingGeneralSettings
     options:
       members:
         - log_level
@@ -85,7 +85,7 @@ Take care when changing these settings.
 
 ## Analytics
 
-##### ::: buildarr_sonarr.config.general.AnalyticsGeneralSettings
+##### ::: buildarr_prowlarr.config.settings.general.AnalyticsGeneralSettings
     options:
       members:
         - send_anonymous_usage_data
@@ -94,7 +94,7 @@ Take care when changing these settings.
 
 ## Updates
 
-##### ::: buildarr_sonarr.config.general.UpdatesGeneralSettings
+##### ::: buildarr_prowlarr.config.settings.general.UpdatesGeneralSettings
     options:
       members:
         - branch
@@ -106,7 +106,7 @@ Take care when changing these settings.
 
 ## Backup
 
-##### ::: buildarr_sonarr.config.general.BackupGeneralSettings
+##### ::: buildarr_prowlarr.config.settings.general.BackupGeneralSettings
     options:
       members:
         - folder

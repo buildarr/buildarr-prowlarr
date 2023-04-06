@@ -46,7 +46,25 @@ class SyncLevel(BaseEnum):
 
 class Proxy(ProwlarrConfigBase):
     """
-    Base class for a Prowlarr indexer proxy.
+    In Buildarr, indexer proxies are defined as in the following example:
+
+    ```yaml
+    prowlarr:
+      settings:
+        indexers:
+          proxies:
+            definitions:
+              "FlareSolverr":
+                type: "flaresolverr"
+                host_url: "http://flaresolverr:8191/"
+                request_timeout: 60.0
+                tags:
+                  - "anime"
+    ```
+
+    The `type` attribute denotes what type of proxy to manage.
+
+    The following attributes are common to all proxy types:
     """
 
     type: str
@@ -57,8 +75,12 @@ class Proxy(ProwlarrConfigBase):
     tags: Set[NonEmptyStr] = set()
     """
     Prowlarr tags to associate this indexer proxy with.
+
+    When set, indexers with at least one matching tag will use this proxy.
+    If unset or empty, all indexers will use this proxy.
     """
 
+    _implementation: str
     _remote_map: List[RemoteMapEntry]
 
     @classmethod
@@ -88,9 +110,7 @@ class Proxy(ProwlarrConfigBase):
     def _get_api_schema(self, schemas: List[prowlarr.IndexerProxyResource]) -> Dict[str, Any]:
         return {
             k: v
-            for k, v in next(
-                s for s in schemas if s.implementation_name.lower() == self.type.lower()
-            )
+            for k, v in next(s for s in schemas if s.implementation.lower() == self._implementation)
             .to_dict()
             .items()
             if k not in ["id", "name"]
@@ -163,9 +183,7 @@ class Proxy(ProwlarrConfigBase):
 
 class FlaresolverrProxy(Proxy):
     """
-    Receive media update and health alert push notifications via Boxcar.
-
-    Supported notification triggers: All except `on_rename`
+    Bypass CloudFlare and DDoS-GUARD protection using FlareSolverr.
     """
 
     type: Literal["flaresolverr"] = "flaresolverr"
@@ -183,6 +201,7 @@ class FlaresolverrProxy(Proxy):
     Timeout for requests sent to FlareSolverr, in seconds.
     """
 
+    _implementation: str = "FlareSolverr"
     _remote_map: List[RemoteMapEntry] = [
         ("host_url", "host", {"is_field": True}),
         ("request_timeout", "requestTimeout", {"is_field": True}),
@@ -191,9 +210,7 @@ class FlaresolverrProxy(Proxy):
 
 class HttpProxy(Proxy):
     """
-    Receive media update and health alert push notifications via Boxcar.
-
-    Supported notification triggers: All except `on_rename`
+    Send indexer requests through a HTTP proxy.
     """
 
     type: Literal["http"] = "http"
@@ -221,6 +238,7 @@ class HttpProxy(Proxy):
     Password used to authenticate with the proxy, if required.
     """
 
+    _implementation: str = "Http"
     _remote_map: List[RemoteMapEntry] = [
         ("hostname", "host", {"is_field": True}),
         ("port", "port", {"is_field": True}),
@@ -247,7 +265,7 @@ class HttpProxy(Proxy):
 
 class Socks4Proxy(Proxy):
     """
-    Receive media update and health alert push notifications via Boxcar.
+    Send indexer requests through a SOCKS version 4 proxy.
 
     !!! note
 
@@ -283,6 +301,7 @@ class Socks4Proxy(Proxy):
     Password used to authenticate with the proxy, if required.
     """
 
+    _implementation: str = "Socks4"
     _remote_map: List[RemoteMapEntry] = [
         ("hostname", "host", {"is_field": True}),
         ("port", "port", {"is_field": True}),
@@ -309,9 +328,7 @@ class Socks4Proxy(Proxy):
 
 class Socks5Proxy(Proxy):
     """
-    Receive media update and health alert push notifications via Boxcar.
-
-    Supported notification triggers: All except `on_rename`
+    Send indexer requests through a SOCKS version 5 proxy.
     """
 
     type: Literal["socks5"] = "socks5"
@@ -339,6 +356,7 @@ class Socks5Proxy(Proxy):
     Password used to authenticate with the proxy, if required.
     """
 
+    _implementation: str = "Socks5"
     _remote_map: List[RemoteMapEntry] = [
         ("hostname", "host", {"is_field": True}),
         ("port", "port", {"is_field": True}),
@@ -363,14 +381,14 @@ class Socks5Proxy(Proxy):
     ]
 
 
-PROXY_TYPE_MAP: Dict[str, Type[Proxy]] = {
-    "flaresolverr": FlaresolverrProxy,
-    "http": HttpProxy,
-    "socks4": Socks4Proxy,
-    "socks5": Socks5Proxy,
-}
+PROXY_TYPES: Tuple[Type[Proxy], ...] = (
+    FlaresolverrProxy,
+    HttpProxy,
+    Socks4Proxy,
+    Socks5Proxy,
+)
 
-PROXY_TYPES: Tuple[Type[Proxy], ...] = tuple(PROXY_TYPE_MAP.values())
+PROXY_TYPE_MAP = {proxy_type._implementation.lower(): proxy_type for proxy_type in PROXY_TYPES}
 
 ProxyType = Union[
     FlaresolverrProxy,
@@ -382,20 +400,25 @@ ProxyType = Union[
 
 class ProxiesSettings(ProwlarrConfigBase):
     """
-    Manage indexer proxies in Prowlarr.
+    Prowlarr supports making indexer search requests through proxies.
+
+    This is often used to get around ISP-level blocking of indexer sites,
+    or to resolve ingress traffic protection measures such as CloudFlare.
+
+    For more information on configuring indexer proxies, refer to
+    [this guide](https://wiki.servarr.com/prowlarr/settings#indexer-proxies) on WikiArr.
     """
 
     delete_unmanaged: bool = False
     """
     Automatically delete indexer proxies not configured in Buildarr.
 
-    Take care when enabling this option, as this can remove connections automatically
-    managed by other applications.
+    If unsure, leave set to the default of `false`.
     """
 
     definitions: Dict[str, Annotated[ProxyType, Field(discriminator="type")]] = {}
     """
-    Indexer proxy definitions to configure in Prowlarr.
+    Define indexer proxy definitions here.
     """
 
     @classmethod
@@ -409,9 +432,9 @@ class ProxiesSettings(ProwlarrConfigBase):
             )
         return cls(
             definitions={
-                api_proxy["name"]: PROXY_TYPE_MAP[
-                    api_proxy.implementation_name.lower()
-                ]._from_remote(tag_ids=tag_ids, remote_attrs=api_proxy.to_dict())
+                api_proxy["name"]: PROXY_TYPE_MAP[api_proxy.implementation.lower()]._from_remote(
+                    tag_ids=tag_ids, remote_attrs=api_proxy.to_dict(),
+                )
                 for api_proxy in api_proxies
             },
         )

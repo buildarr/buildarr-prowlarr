@@ -118,7 +118,7 @@ class HostGeneralSettings(GeneralSettings):
     Prowlarr instance connection and name configuration.
 
     Many of these settings configure Prowlarr's external connection interface.
-    If they are changed, the [settings Buildarr uses to connect](host.md) with this
+    If they are changed, the [settings Buildarr uses to connect](../host.md) with this
     Prowlarr instance may need to be updated, so take care when modifying them.
 
     **Changing any of these settings require a restart of Prowlarr to take effect.**
@@ -431,7 +431,7 @@ class UpdatesGeneralSettings(GeneralSettings):
     Settings for updating Prowlarr.
     """
 
-    branch: NonEmptyStr = "main"  # type: ignore[assignment]
+    branch: NonEmptyStr = "master"  # type: ignore[assignment]
     """
     Branch used by the external update mechanism.
     Changing this value has no effect on Docker installations.

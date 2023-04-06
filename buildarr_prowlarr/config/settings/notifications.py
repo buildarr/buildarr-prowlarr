@@ -139,7 +139,7 @@ class WebhookMethod(BaseEnum):
 
 class NotificationTriggers(ProwlarrConfigBase):
     """
-    Connections are configured using the following syntax.
+    Notification connections are configured using the following syntax.
 
     ```yaml
     prowlarr:
@@ -150,13 +150,6 @@ class NotificationTriggers(ProwlarrConfigBase):
             Email: # Name of notification connection in Prowlarr.
               type: "email" # Required
               notification_triggers: # When to send notifications.
-                on_grab: true
-                on_import: true
-                on_upgrade: true
-                on_rename: false # Not supported by email notifications.
-                on_series_delete: true
-                on_episode_file_delete: true
-                on_episode_file_delete_for_upgrade: true
                 on_health_issue: true
                 include_health_warnings: false # Do not send on just warnings.
                 on_application_update: true
@@ -215,24 +208,22 @@ class NotificationTriggers(ProwlarrConfigBase):
     ]
 
 
-class Connection(ProwlarrConfigBase):
+class Notification(ProwlarrConfigBase):
     """
     Base class for a Prowlarr notification connection.
     """
 
     notification_triggers: NotificationTriggers = NotificationTriggers()
     """
-    Notification triggers to enable on this connection.
+    Notification triggers to enable on this notification connection.
     """
 
     tags: List[NonEmptyStr] = []
     """
-    Prowlarr tags to associate this connection with.
+    Prowlarr tags to associate this notification connection with.
     """
 
-    _implementation_name: str
     _implementation: str
-    _config_contract: str
     _remote_map: List[RemoteMapEntry]
 
     @classmethod
@@ -268,18 +259,25 @@ class Connection(ProwlarrConfigBase):
             ),
         )
 
+    def _get_api_schema(self, schemas: List[prowlarr.NotificationResource]) -> Dict[str, Any]:
+        return {
+            k: v
+            for k, v in next(s for s in schemas if s.implementation.lower() == self._implementation)
+            .to_dict()
+            .items()
+            if k not in ["id", "name"]
+        }
+
     def _create_remote(
         self,
         tree: str,
         secrets: ProwlarrSecrets,
+        api_notification_schemas: List[prowlarr.NotificationResource],
         tag_ids: Mapping[str, int],
-        connection_name: str,
+        notification_name: str,
     ) -> None:
-        remote_attrs = {
-            "name": connection_name,
-            "implementation": self._implementation,
-            "implementation_name": self._implementation_name,
-            "config_contract": self._config_contract,
+        api_schema = self._get_api_schema(api_notification_schemas)
+        set_attrs = {
             **self.notification_triggers.get_create_remote_attrs(
                 tree=f"{tree}.notification_triggers",
                 remote_map=self.notification_triggers._remote_map,
@@ -289,6 +287,14 @@ class Connection(ProwlarrConfigBase):
                 remote_map=self._get_base_remote_map(tag_ids) + self._remote_map,
             ),
         }
+        field_values: Dict[str, Any] = {
+            field["name"]: field["value"] for field in set_attrs["fields"]
+        }
+        set_attrs["fields"] = [
+            ({**f, "value": field_values[f["name"]]} if f["name"] in field_values else f)
+            for f in api_schema["fields"]
+        ]
+        remote_attrs = {"name": notification_name, **api_schema, **set_attrs}
         with prowlarr_api_client(secrets=secrets) as api_client:
             prowlarr.NotificationApi(api_client).create_notification(
                 notification_resource=prowlarr.NotificationResource.from_dict(remote_attrs),
@@ -299,55 +305,63 @@ class Connection(ProwlarrConfigBase):
         tree: str,
         secrets: ProwlarrSecrets,
         remote: Self,
+        api_notification_schemas: List[prowlarr.NotificationResource],
         tag_ids: Mapping[str, int],
-        connection_id: int,
-        connection_name: str,
+        api_notification: prowlarr.NotificationResource,
     ) -> bool:
         (
             triggers_updated,
-            triggers_remote_attrs,
+            updated_triggers_attrs,
         ) = self.notification_triggers.get_update_remote_attrs(
             tree=tree,
             remote=remote.notification_triggers,
             remote_map=self.notification_triggers._remote_map,
-            set_unchanged=True,
         )
-        base_updated, base_remote_attrs = self.get_update_remote_attrs(
+        base_updated, updated_base_attrs = self.get_update_remote_attrs(
             tree=tree,
             remote=remote,
             remote_map=self._get_base_remote_map(tag_ids) + self._remote_map,
-            set_unchanged=True,
         )
         if triggers_updated or base_updated:
+            api_schema = self._get_api_schema(api_notification_schemas)
+            api_notification_dict = api_notification.to_dict()
+            updated_attrs = {**updated_triggers_attrs, **updated_base_attrs}
+            if "fields" in updated_attrs:
+                updated_field_values: Dict[str, Any] = {
+                    field["name"]: field["value"] for field in updated_attrs["fields"]
+                }
+                remote_fields: Dict[str, Dict[str, Any]] = {
+                    field["name"]: field for field in api_notification_dict["fields"]
+                }
+                updated_attrs["fields"] = [
+                    (
+                        {
+                            **remote_fields[f["name"]],
+                            "value": updated_field_values[f["name"]],
+                        }
+                        if f["name"] in updated_field_values
+                        else remote_fields[f["name"]]
+                    )
+                    for f in api_schema["fields"]
+                ]
+            remote_attrs = {**api_notification_dict, **updated_attrs}
             with prowlarr_api_client(secrets=secrets) as api_client:
                 prowlarr.NotificationApi(api_client).update_notification(
-                    id=str(connection_id),
-                    notification_resource=prowlarr.NotificationResource.from_dict(
-                        {
-                            "id": connection_id,
-                            "name": connection_name,
-                            "implementation": self._implementation,
-                            "implementationName": self._implementation_name,
-                            "configContract": self._config_contract,
-                            **triggers_remote_attrs,
-                            **base_remote_attrs,
-                        },
-                    ),
+                    id=str(api_notification.id),
+                    notification_resource=prowlarr.NotificationResource.from_dict(remote_attrs),
                 )
             return True
         return False
 
-    def _delete_remote(self, tree: str, secrets: ProwlarrSecrets, connection_id: int) -> None:
+    def _delete_remote(self, tree: str, secrets: ProwlarrSecrets, notification_id: int) -> None:
         logger.info("%s: (...) -> (deleted)", tree)
         with prowlarr_api_client(secrets=secrets) as api_client:
-            prowlarr.NotificationApi(api_client).delete_notification(id=connection_id)
+            prowlarr.NotificationApi(api_client).delete_notification(id=notification_id)
 
 
-class BoxcarConnection(Connection):
+class BoxcarNotification(Notification):
     """
     Receive media update and health alert push notifications via Boxcar.
-
-    Supported notification triggers: All except `on_rename`
     """
 
     type: Literal["boxcar"] = "boxcar"
@@ -360,17 +374,13 @@ class BoxcarConnection(Connection):
     Access token for authenticating with Boxcar.
     """
 
-    _implementation_name: str = "Boxcar"
     _implementation: str = "Boxcar"
-    _config_contract: str = "BoxcarSettings"
     _remote_map: List[RemoteMapEntry] = [("access_token", "token", {"is_field": True})]
 
 
-class CustomscriptConnection(Connection):
+class CustomscriptNotification(Notification):
     """
     Execute a local script on the Prowlarr instance when events occur.
-
-    Supported notification triggers: All
     """
 
     type: Literal["customscript"] = "customscript"
@@ -383,17 +393,13 @@ class CustomscriptConnection(Connection):
     Path of the script to execute.
     """
 
-    _implementation_name: str = "Custom Script"
     _implementation: str = "CustomScript"
-    _config_contract: str = "CustomScriptSettings"
     _remote_map: List[RemoteMapEntry] = [("path", "path", {"is_field": True})]
 
 
-class DiscordConnection(Connection):
+class DiscordNotification(Notification):
     """
     Send media update and health alert messages to a Discord server.
-
-    Supported notification triggers: All
     """
 
     type: Literal["discord"] = "discord"
@@ -523,9 +529,7 @@ class DiscordConnection(Connection):
     ```
     """
 
-    _implementation_name: str = "Discord"
     _implementation: str = "Discord"
-    _config_contract: str = "DiscordSettings"
     _remote_map: List[RemoteMapEntry] = [
         ("webhook_url", "webHookUrl", {"is_field": True}),
         (
@@ -556,11 +560,9 @@ class DiscordConnection(Connection):
     ]
 
 
-class EmailConnection(Connection):
+class EmailNotification(Notification):
     """
     Send media update and health alert messages to an email address.
-
-    Supported notification triggers: All except `on_rename`
     """
 
     type: Literal["email"] = "email"
@@ -625,9 +627,7 @@ class EmailConnection(Connection):
     Optional list of email addresses to blind copy (BCC) the mail to.
     """
 
-    _implementation_name: str = "Email"
     _implementation: str = "Email"
-    _config_contract: str = "EmailSettings"
     _remote_map: List[RemoteMapEntry] = [
         ("server", "server", {"is_field": True}),
         ("port", "port", {"is_field": True}),
@@ -641,11 +641,9 @@ class EmailConnection(Connection):
     ]
 
 
-class GotifyConnection(Connection):
+class GotifyNotification(Notification):
     """
     Send media update and health alert push notifications via a Gotify server.
-
-    Supported notification triggers: All except `on_rename`
     """
 
     type: Literal["gotify"] = "gotify"
@@ -676,8 +674,6 @@ class GotifyConnection(Connection):
     """
 
     _implementation: str = "Gotify"
-    _implementation_name: str = "Gotify"
-    _config_contract: str = "GotifySettings"
     _remote_map: List[RemoteMapEntry] = [
         ("server", "server", {"is_field": True}),
         ("app_token", "appToken", {"is_field": True}),
@@ -685,11 +681,9 @@ class GotifyConnection(Connection):
     ]
 
 
-class JoinConnection(Connection):
+class JoinNotification(Notification):
     """
     Send media update and health alert push notifications via Join.
-
-    Supported notification triggers: All except `on_rename`
     """
 
     type: Literal["join"] = "join"
@@ -726,8 +720,6 @@ class JoinConnection(Connection):
     """
 
     _implementation: str = "Join"
-    _implementation_name: str = "Join"
-    _config_contract: str = "JoinSettings"
     _remote_map: List[RemoteMapEntry] = [
         ("api_key", "apiKey", {"is_field": True}),
         # ("device_ids", "deviceIds", {"is_field": True}),
@@ -746,11 +738,9 @@ class JoinConnection(Connection):
     ]
 
 
-class NotifiarrConnection(Connection):
+class NotifiarrNotification(Notification):
     """
     Send media update and health alert emails via the Notifiarr notification service.
-
-    Supported notification triggers: All
     """
 
     type: Literal["notifiarr"] = "notifiarr"
@@ -764,16 +754,12 @@ class NotifiarrConnection(Connection):
     """
 
     _implementation: str = "Notifiarr"
-    _implementation_name: str = "Notifiarr"
-    _config_contract: str = "NotifiarrSettings"
     _remote_map: List[RemoteMapEntry] = [("api_key", "apiKey", {"is_field": True})]
 
 
-class ProwlConnection(Connection):
+class ProwlNotification(Notification):
     """
     Send media update and health alert push notifications to a Prowl client.
-
-    Supported notification triggers: All
     """
 
     type: Literal["prowl"] = "prowl"
@@ -800,19 +786,15 @@ class ProwlConnection(Connection):
     """
 
     _implementation: str = "Prowl"
-    _implementation_name: str = "Prowl"
-    _config_contract: str = "ProwlSettings"
     _remote_map: List[RemoteMapEntry] = [
         ("api_key", "apiKey", {"is_field": True}),
         ("priority", "priority", {"is_field": True}),
     ]
 
 
-class PushbulletConnection(Connection):
+class PushbulletNotification(Notification):
     """
     Send media update and health alert push notifications to 1 or more Pushbullet devices.
-
-    Supported notification triggers: All except `on_rename`
     """
 
     type: Literal["pushbullet"] = "pushbullet"
@@ -846,8 +828,6 @@ class PushbulletConnection(Connection):
     """
 
     _implementation: str = "Pushbullet"
-    _implementation_name: str = "PushBullet"
-    _config_contract: str = "PushBulletSettings"
     _remote_map: List[RemoteMapEntry] = [
         ("api_key", "apiKey", {"is_field": True}),
         ("device_ids", "deviceIds", {"is_field": True}),
@@ -860,11 +840,9 @@ class PushbulletConnection(Connection):
     ]
 
 
-class PushoverConnection(Connection):
+class PushoverNotification(Notification):
     """
     Send media update and health alert push notifications to 1 or more Pushover devices.
-
-    Supported notification triggers: All except `on_rename`
     """
 
     type: Literal["pushover"] = "pushover"
@@ -925,9 +903,7 @@ class PushoverConnection(Connection):
     Leave unset, blank or set to `None` to use the default.
     """
 
-    _implementation_name: str = "Pushover"
     _implementation: str = "Pushover"
-    _config_contract: str = "PushoverSettings"
     _remote_map: List[RemoteMapEntry] = [
         ("user_key", "userKey", {"is_field": True}),
         ("api_key", "apiKey", {"is_field": True}),
@@ -943,11 +919,9 @@ class PushoverConnection(Connection):
     ]
 
 
-class SendgridConnection(Connection):
+class SendgridNotification(Notification):
     """
     Send media update and health alert emails via the SendGrid delivery service.
-
-    Supported notification triggers: All except `on_rename`
     """
 
     type: Literal["sendgrid"] = "sendgrid"
@@ -976,8 +950,6 @@ class SendgridConnection(Connection):
     """
 
     _implementation: str = "SendGrid"
-    _implementation_name: str = "SendGrid"
-    _config_contract: str = "SendGridSettings"
     _remote_map: List[RemoteMapEntry] = [
         ("api_key", "apiKey", {"is_field": True}),
         ("from_address", "from", {"is_field": True}),
@@ -985,11 +957,9 @@ class SendgridConnection(Connection):
     ]
 
 
-class SlackConnection(Connection):
+class SlackNotification(Notification):
     """
     Send media update and health alert messages to a Slack channel.
-
-    Supported notification triggers: All
     """
 
     type: Literal["slack"] = "slack"
@@ -1020,8 +990,6 @@ class SlackConnection(Connection):
     """
 
     _implementation: str = "Slack"
-    _implementation_name: str = "Slack"
-    _config_contract: str = "SlackSettings"
     _remote_map: List[RemoteMapEntry] = [
         ("webhook_url", "webHookUrl", {"is_field": True}),
         ("username", "username", {"is_field": True}),
@@ -1038,11 +1006,9 @@ class SlackConnection(Connection):
     ]
 
 
-class TelegramConnection(Connection):
+class TelegramNotification(Notification):
     """
     Send media update and health alert messages to a Telegram chat room.
-
-    Supported notification triggers: All
     """
 
     type: Literal["telegram"] = "telegram"
@@ -1068,8 +1034,6 @@ class TelegramConnection(Connection):
     """
 
     _implementation: str = "Telegram"
-    _implementation_name: str = "Telegram"
-    _config_contract: str = "TelegramSettings"
     _remote_map: List[RemoteMapEntry] = [
         ("bot_token", "botToken", {"is_field": True}),
         ("chat_id", "chatId", {"is_field": True}),
@@ -1077,7 +1041,7 @@ class TelegramConnection(Connection):
     ]
 
 
-class TwitterConnection(Connection):
+class TwitterNotification(Notification):
     """
     Send media update and health alert messages via Twitter.
 
@@ -1089,8 +1053,6 @@ class TwitterConnection(Connection):
 
     Access tokens can be obtained using the prodecure documented [here](
     https://developer.twitter.com/en/docs/authentication/oauth-1-0a/obtaining-user-access-tokens).
-
-    Supported notification triggers: All except `on_rename`
     """
 
     type: Literal["twitter"] = "twitter"
@@ -1128,9 +1090,7 @@ class TwitterConnection(Connection):
     Send a direct message instead of a public message.
     """
 
-    _implementation_name: str = "Twitter"
     _implementation: str = "Twitter"
-    _config_contract: str = "TwitterSettings"
     _remote_map: List[RemoteMapEntry] = [
         ("consumer_key", "consumerKey", {"is_field": True}),
         ("consumer_secret", "consumerSecret", {"is_field": True}),
@@ -1141,11 +1101,9 @@ class TwitterConnection(Connection):
     ]
 
 
-class WebhookConnection(Connection):
+class WebhookNotification(Notification):
     """
     Send media update and health alert notifications to a webhook API.
-
-    Supported notification triggers: All
     """
 
     type: Literal["webhook"] = "webhook"
@@ -1178,9 +1136,7 @@ class WebhookConnection(Connection):
     Webhook API password.
     """
 
-    _implementation_name: str = "Webhook"
     _implementation: str = "Webhook"
-    _config_contract: str = "WebhookSettings"
     _remote_map: List[RemoteMapEntry] = [
         ("url", "url", {"is_field": True}),
         ("method", "method", {"is_field": True}),
@@ -1189,44 +1145,45 @@ class WebhookConnection(Connection):
     ]
 
 
-CONNECTION_TYPES: Tuple[Type[Connection], ...] = (
-    BoxcarConnection,
-    CustomscriptConnection,
-    DiscordConnection,
-    EmailConnection,
-    GotifyConnection,
-    JoinConnection,
-    NotifiarrConnection,
-    ProwlConnection,
-    PushbulletConnection,
-    PushoverConnection,
-    SendgridConnection,
-    SlackConnection,
-    TelegramConnection,
-    TwitterConnection,
-    WebhookConnection,
+NOTIFICATION_TYPES: Tuple[Type[Notification], ...] = (
+    BoxcarNotification,
+    CustomscriptNotification,
+    DiscordNotification,
+    EmailNotification,
+    GotifyNotification,
+    JoinNotification,
+    NotifiarrNotification,
+    ProwlNotification,
+    PushbulletNotification,
+    PushoverNotification,
+    SendgridNotification,
+    SlackNotification,
+    TelegramNotification,
+    TwitterNotification,
+    WebhookNotification,
 )
 
-CONNECTION_TYPE_MAP: Dict[str, Type[Connection]] = {
-    connection_type._implementation: connection_type for connection_type in CONNECTION_TYPES
+NOTIFICATION_TYPE_MAP: Dict[str, Type[Notification]] = {
+    notification_type._implementation.lower(): notification_type
+    for notification_type in NOTIFICATION_TYPES
 }
 
-ConnectionType = Union[
-    BoxcarConnection,
-    CustomscriptConnection,
-    DiscordConnection,
-    EmailConnection,
-    GotifyConnection,
-    JoinConnection,
-    NotifiarrConnection,
-    ProwlConnection,
-    PushbulletConnection,
-    PushoverConnection,
-    SendgridConnection,
-    SlackConnection,
-    TelegramConnection,
-    TwitterConnection,
-    WebhookConnection,
+NotificationType = Union[
+    BoxcarNotification,
+    CustomscriptNotification,
+    DiscordNotification,
+    EmailNotification,
+    GotifyNotification,
+    JoinNotification,
+    NotifiarrNotification,
+    ProwlNotification,
+    PushbulletNotification,
+    PushoverNotification,
+    SendgridNotification,
+    SlackNotification,
+    TelegramNotification,
+    TwitterNotification,
+    WebhookNotification,
 ]
 
 
@@ -1243,27 +1200,29 @@ class ProwlarrNotificationsSettings(ProwlarrConfigBase):
     managed by other applications.
     """
 
-    definitions: Dict[str, Annotated[ConnectionType, Field(discriminator="type")]] = {}
+    definitions: Dict[str, Annotated[NotificationType, Field(discriminator="type")]] = {}
     """
-    Connection definitions to configure in Prowlarr.
+    Notification connections are defined here.
     """
 
     @classmethod
     def from_remote(cls, secrets: ProwlarrSecrets) -> Self:
         with prowlarr_api_client(secrets=secrets) as api_client:
-            connections = prowlarr.NotificationApi(api_client).list_notification()
+            api_notifications = prowlarr.NotificationApi(api_client).list_notification()
             tag_ids: Dict[str, int] = (
                 {tag.label: tag.id for tag in prowlarr.TagApi(api_client).list_tag()}
-                if any(connection.tags for connection in connections)
+                if any(api_notification.tags for api_notification in api_notifications)
                 else {}
             )
         return cls(
             definitions={
-                connection["name"]: CONNECTION_TYPE_MAP[connection["implementation"]]._from_remote(
+                api_notification.name: NOTIFICATION_TYPE_MAP[
+                    api_notification.implementation.lower()
+                ]._from_remote(
                     tag_ids=tag_ids,
-                    remote_attrs=connection.to_dict(),
+                    remote_attrs=api_notification.to_dict(),
                 )
-                for connection in connections
+                for api_notification in api_notifications
             },
         )
 
@@ -1278,50 +1237,53 @@ class ProwlarrNotificationsSettings(ProwlarrConfigBase):
         changed = False
         #
         with prowlarr_api_client(secrets=secrets) as api_client:
-            connection_ids: Dict[str, int] = {
-                connection.name: connection.id
-                for connection in prowlarr.NotificationApi(api_client).list_notification()
+            notification_api = prowlarr.NotificationApi(api_client)
+            api_notification_schemas = notification_api.list_notification_schema()
+            api_notifications: Dict[str, prowlarr.NotificationResource] = {
+                api_notification.name: api_notification
+                for api_notification in notification_api.list_notification()
             }
             tag_ids: Dict[str, int] = (
                 {tag.label: tag.id for tag in prowlarr.TagApi(api_client).list_tag()}
-                if any(connection.tags for connection in self.definitions.values())
-                or any(connection.tags for connection in remote.definitions.values())
+                if any(api_notification.tags for api_notification in self.definitions.values())
+                or any(api_notification.tags for api_notification in remote.definitions.values())
                 else {}
             )
         #
-        for connection_name, connection in self.definitions.items():
-            connection_tree = f"{tree}.definitions[{repr(connection_name)}]"
+        for notification_name, notification in self.definitions.items():
+            notification_tree = f"{tree}.definitions[{repr(notification_name)}]"
             #
-            if connection_name not in remote.definitions:
-                connection._create_remote(
-                    tree=connection_tree,
+            if notification_name not in remote.definitions:
+                notification._create_remote(
+                    tree=notification_tree,
                     secrets=secrets,
+                    api_notification_schemas=api_notification_schemas,
                     tag_ids=tag_ids,
-                    connection_name=connection_name,
+                    notification_name=notification_name,
                 )
                 changed = True
             #
-            elif connection._update_remote(
-                tree=connection_tree,
+            elif notification._update_remote(
+                tree=notification_tree,
                 secrets=secrets,
-                remote=remote.definitions[connection_name],  # type: ignore[arg-type]
+                remote=remote.definitions[notification_name],  # type: ignore[arg-type]
+                api_notification_schemas=api_notification_schemas,
                 tag_ids=tag_ids,
-                connection_id=connection_ids[connection_name],
-                connection_name=connection_name,
+                api_notification=api_notifications[notification_name],
             ):
                 changed = True
         #
-        for connection_name, connection in remote.definitions.items():
-            if connection_name not in self.definitions:
-                connection_tree = f"{tree}.definitions[{repr(connection_name)}]"
+        for notification_name, notification in remote.definitions.items():
+            if notification_name not in self.definitions:
+                notification_tree = f"{tree}.definitions[{repr(notification_name)}]"
                 if self.delete_unmanaged:
-                    connection._delete_remote(
-                        tree=connection_tree,
+                    notification._delete_remote(
+                        tree=notification_tree,
                         secrets=secrets,
-                        connection_id=connection_ids[connection_name],
+                        notification_id=api_notifications[notification_name].id,
                     )
                     changed = True
                 else:
-                    logger.debug("%s: (...) (unmanaged)", connection_tree)
+                    logger.debug("%s: (...) (unmanaged)", notification_tree)
         #
         return changed
