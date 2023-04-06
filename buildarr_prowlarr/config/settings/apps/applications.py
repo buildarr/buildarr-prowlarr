@@ -429,11 +429,7 @@ class SonarrApplication(Application):
     """
 
     @validator("api_key")
-    def validate_api_key(
-        cls,
-        value: Optional[SecretStr],
-        values: Dict[str, Any],
-    ) -> Optional[SecretStr]:
+    def validate_api_key(cls, value: Optional[SecretStr], values: Dict[str, Any]) -> SecretStr:
         if "instance_name" in values and values["instance_name"]:
             return state.secrets.sonarr[  # type: ignore[attr-defined]
                 values["instance_name"]
