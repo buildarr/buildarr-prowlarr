@@ -37,33 +37,27 @@ logger = getLogger(__name__)
 
 class SyncProfile(ProwlarrConfigBase):
     """
-    Base class for an application sync profile.
+    The following configuration attributes are available for an app sync profile.
     """
 
     enable_rss: bool = True
     """
-    Enable the RSS feed for applicable indexers.
+    Enable RSS searches/queries for the connected applications.
     """
 
     enable_interactive_search: bool = True
     """
-    Enable interactive search for applicable indexers.
-
-    The indexers will be used when interactive searches are performed in the UI.
+    Enable interactive (manual) searches for the connection applications.
     """
 
     enable_automatic_search: bool = True
     """
-    Enable automatic searches for applicable indexers.
-
-    The indexers will be used when automatic searches are perfomed
-    in the UI, or by Prowlarr itse.f
+    Enable automatic searches for the connected applications.
     """
 
     minimum_seeders: PositiveInt = 1
     """
-    The minimum number of seeders required by the application
-    for the indexer to download a release.
+    The minimum number of seeders required by the application to download a release.
     """
 
     _remote_map: List[RemoteMapEntry] = [
@@ -122,20 +116,48 @@ class SyncProfile(ProwlarrConfigBase):
 
 class SyncProfilesSettings(ProwlarrConfigBase):
     """
-    Manage indexer proxies in Prowlarr.
+    App sync profiles are used to set application syncing configuration
+    with respect to an indexer.
+
+    Configure the sync profile in Buildarr:
+
+    ```yaml
+    prowlarr:
+      settings:
+        apps:
+          sync_profiles:
+            delete_unmanaged: false
+            definitions:
+              "Standard":
+                enable_automatic_search: true
+                enable_interactive_search: true
+                enable_rss: true
+                minimum_seeders: 1
+    ```
+
+    When the [`sync_profile`](
+    ../indexers/indexers.md#buildarr_prowlarr.config.settings
+    .indexers.indexers.Indexer.sync_profile
+    )
+    attribute on the indexer is set to the name of the
+    sync profile, the applications connected to the indexer will respect
+    the settings defined in the sync profile for that indexer.
+
+    For more information, refer to the guide for
+    [sync profiles](https://wiki.servarr.com/prowlarr/settings#sync-profiles)
+    on WikiArr.
     """
 
     delete_unmanaged: bool = False
     """
     Automatically delete indexer proxies not configured in Buildarr.
 
-    Take care when enabling this option, as this can remove connections automatically
-    managed by other applications.
+    If unsure, leave set to the default value of `false`.
     """
 
     definitions: Dict[str, SyncProfile] = {}
     """
-    Application sync profile definitions to configure in Prowlarr.
+    Application sync profiles are defined here.
     """
 
     @classmethod

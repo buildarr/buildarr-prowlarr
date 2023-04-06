@@ -50,7 +50,7 @@ class SyncLevel(BaseEnum):
 
 class Application(ProwlarrConfigBase):
     """
-    Base class for a Prowlarr notification connection.
+    Prowlarr application links have the following common configuration attributes.
     """
 
     type: str
@@ -60,23 +60,31 @@ class Application(ProwlarrConfigBase):
 
     prowlarr_url: AnyHttpUrl
     """
-    Prowlarr server URL as the target application sees it, including http(s)://, port,
-    and URL base (if needed).
+    Prowlarr server URL as the target application sees it,
+    including `http[s]://`, port, and URL base (if needed).
+
+    This attribute is required, even for applications with instance links.
     """
 
     base_url: AnyHttpUrl
     """
-    URL used to connect to the target application server, including http(s)://, port,
-    and URL base (if needed).
+    URL that Prowlarr uses to connect to the target application server,
+    including `http[s]://`, port, and URL base (if needed).
+
+    This attribute is required, even for applications with instance links.
     """
 
-    # Define per-type because the API key spec may differ between them,
-    # and if an application link is present, it is not required.
-    # api_key: ArrApiKey
-
     sync_level: SyncLevel = SyncLevel.add_and_remove_only
+    """
+    Configures when Prowlarr will sync indexer configuration with the application.
 
-    # Define per-type defaults.
+    Values:
+
+    * `disable` (Do not sync indexers with the application)
+    * `add-and-remove-only` (Sync when indexers are added or removed)
+    * `full-sync` (Sync all indexer changes to the application)
+    """
+
     sync_categories: Set[LowerCaseNonEmptyStr]
     """
     Categories of content to sync with the target application.
@@ -88,7 +96,9 @@ class Application(ProwlarrConfigBase):
 
     tags: Set[NonEmptyStr] = set()
     """
-    Prowlarr tags to associate this application link with.
+    Prowlarr tags to assign to this application.
+
+    This is used to associate the application with indexers.
     """
 
     _remote_map: List[RemoteMapEntry] = []
@@ -227,14 +237,12 @@ class Application(ProwlarrConfigBase):
             prowlarr.ApplicationApi(api_client).delete_applications(id=application_id)
 
 
-class LazylibraryApplication(Application):
+class LazylibrarianApplication(Application):
     """
-    Receive media update and health alert push notifications via Boxcar.
-
-    Supported notification triggers: All except `on_rename`
+    Add a [LazyLibrarian](https://lazylibrarian.gitlab.io) instance to sync with Prowlarr.
     """
 
-    type: Literal["lazylibrary"] = "lazylibrary"
+    type: Literal["lazylibrarian", "lazylibrary"] = "lazylibrarian"
     """
     Type value associated with this kind of application.
     """
@@ -261,9 +269,7 @@ class LazylibraryApplication(Application):
 
 class LidarrApplication(Application):
     """
-    Receive media update and health alert push notifications via Boxcar.
-
-    Supported notification triggers: All except `on_rename`
+    Add a [Lidarr](https://lidarr.audio) instance to sync with Prowlarr.
     """
 
     type: Literal["lidarr"] = "lidarr"
@@ -292,9 +298,7 @@ class LidarrApplication(Application):
 
 class MylarApplication(Application):
     """
-    Receive media update and health alert push notifications via Boxcar.
-
-    Supported notification triggers: All except `on_rename`
+    Add a [Mylar](https://github.com/mylar3/mylar3) instance to sync with Prowlarr.
     """
 
     type: Literal["mylar"] = "mylar"
@@ -317,9 +321,7 @@ class MylarApplication(Application):
 
 class RadarrApplication(Application):
     """
-    Receive media update and health alert push notifications via Boxcar.
-
-    Supported notification triggers: All except `on_rename`
+    Add a [Radarr](https://radarr.video) instance to sync with Prowlarr.
     """
 
     type: Literal["radarr"] = "radarr"
@@ -352,9 +354,7 @@ class RadarrApplication(Application):
 
 class ReadarrApplication(Application):
     """
-    Receive media update and health alert push notifications via Boxcar.
-
-    Supported notification triggers: All except `on_rename`
+    Add a [Readarr](https://readarr.com) instance to sync with Prowlarr.
     """
 
     type: Literal["readarr"] = "readarr"
@@ -385,9 +385,13 @@ class ReadarrApplication(Application):
 
 class SonarrApplication(Application):
     """
-    Receive media update and health alert push notifications via Boxcar.
+    Add a [Sonarr](https://sonarr.tv) instance to sync with Prowlarr.
 
-    Supported notification triggers: All except `on_rename`
+    !!! note
+
+        There is a [Sonarr plugin for Buildarr](https://buidarr.github.io/plugins/sonarr)
+        that can be used to link Sonarr instances with Prowlarr using the `instance_name`
+        attribute.
     """
 
     type: Literal["sonarr"] = "sonarr"
@@ -467,9 +471,7 @@ class SonarrApplication(Application):
 
 class WhisparrApplication(Application):
     """
-    Receive media update and health alert push notifications via Boxcar.
-
-    Supported notification triggers: All except `on_rename`
+    Add a [Whisparr](https://github.com/Whisparr/Whisparr) instance to sync with Prowlarr.
     """
 
     type: Literal["whisparr"] = "whisparr"
@@ -500,7 +502,7 @@ class WhisparrApplication(Application):
 
 
 APPLICATION_TYPE_MAP: Dict[str, Type[Application]] = {
-    "lazylibrary": LazylibraryApplication,
+    "lazylibrary": LazylibrarianApplication,
     "lidarr": LidarrApplication,
     "mylar": MylarApplication,
     "radarr": RadarrApplication,
@@ -512,7 +514,7 @@ APPLICATION_TYPE_MAP: Dict[str, Type[Application]] = {
 APPLICATION_TYPES: Tuple[Type[Application], ...] = tuple(APPLICATION_TYPE_MAP.values())
 
 ApplicationType = Union[
-    LazylibraryApplication,
+    LazylibrarianApplication,
     LidarrApplication,
     MylarApplication,
     RadarrApplication,
@@ -524,7 +526,73 @@ ApplicationType = Union[
 
 class ApplicationsSettings(ProwlarrConfigBase):
     """
-    Manage application links in Prowlarr.
+    Prowlarr syncs indexer configuration with connected applications, and performs requests
+    to the indexer on the application's behalf.
+
+    Buildarr makes configuring these applications easier through instance links.
+
+    By installing the Buildarr plugin for the application (e.g. Sonarr)
+    alongside the Prowlarr plugin, you can manage the instances using a single Buildarr
+    instance, and link them together so that you don't need to supply certain parameters
+    multiple times, e.g. the API key.
+
+    Buildarr will also intelligently manage updates so that the connected application
+    instance is updated before the Prowlarr instance, to ensure state is consistent
+    at each update stage.
+
+    ```yaml
+    ---
+
+    sonarr:
+      instances:
+        "Sonarr": {}  # Define instance configuration.
+
+    prowlarr:
+      settings:
+        apps:
+          applications:
+            definitions:
+              "Sonarr":
+                type: "sonarr"
+                instance_name: "Sonarr"
+                prowlarr_url: "http://prowlarr:9696"
+                base_url: "http://sonarr:8989"
+                tags:
+                  - "anime"
+    ```
+
+    If the application does not have a Buildarr plugin, they can also be configured
+    without instance links by supplying the required parameters.
+
+    ```yaml
+    prowlarr:
+      settings:
+        apps:
+          applications:
+            definitions:
+              "Radarr":
+                type: "radarr"
+                api_key: "1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d"
+                prowlarr_url: "http://prowlarr:9696"
+                base_url: "http://radarr:7878"
+                sync_level: "add-and-remove-only"
+                sync_categories:
+                  - "Movies/UHD"
+                  - "Movies/HD"
+                  - "Movies/SD"
+                  - "Movies/3D"
+                  - "Movies/BluRay"
+                  - "Movies/DVD"
+                  - "Movies/WEB-DL"
+                  - "Movies/Foreign"
+                  - "Movies/Other"
+                tags:
+                  - "movies"
+    ```
+
+    For more information on configuring application links in Prowlarr,
+    refer to the [guide for applications](https://wiki.servarr.com/prowlarr/settings#applications)
+    on WikiArr.
     """
 
     delete_unmanaged: bool = False
