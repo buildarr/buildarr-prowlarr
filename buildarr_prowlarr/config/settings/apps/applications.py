@@ -19,6 +19,8 @@ Prowlarr plugin application link settings configuration.
 
 from __future__ import annotations
 
+import itertools
+
 from logging import getLogger
 from typing import Any, Dict, List, Literal, Mapping, Optional, Set, Tuple, Type, Union
 
@@ -547,9 +549,12 @@ class ApplicationsSettings(ProwlarrConfigBase):
         with prowlarr_api_client(secrets=secrets) as api_client:
             category_ids: Dict[str, int] = {
                 api_category.name: api_category.id
-                for api_category in prowlarr.IndexerDefaultCategoriesApi(
-                    api_client,
-                ).list_indexer_categories()
+                for api_category in itertools.chain.from_iterable(
+                    api_category_group.sub_categories
+                    for api_category_group in prowlarr.IndexerDefaultCategoriesApi(
+                        api_client,
+                    ).list_indexer_categories()
+                )
             }
             api_applications = prowlarr.ApplicationApi(api_client).list_applications()
             tag_ids: Dict[str, int] = (
@@ -589,9 +594,12 @@ class ApplicationsSettings(ProwlarrConfigBase):
             }
             category_ids: Dict[str, int] = {
                 api_category.name: api_category.id
-                for api_category in prowlarr.IndexerDefaultCategoriesApi(
-                    api_client,
-                ).list_indexer_categories()
+                for api_category in itertools.chain.from_iterable(
+                    api_category_group.sub_categories
+                    for api_category_group in prowlarr.IndexerDefaultCategoriesApi(
+                        api_client,
+                    ).list_indexer_categories()
+                )
             }
             tag_ids: Dict[str, int] = (
                 {tag.label: tag.id for tag in prowlarr.TagApi(api_client).list_tag()}

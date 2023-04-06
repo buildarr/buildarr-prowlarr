@@ -25,13 +25,12 @@ from typing_extensions import Self
 
 from ..types import ProwlarrConfigBase
 from .apps import ProwlarrAppsSettings
+from .download_clients import ProwlarrDownloadClientsSettings
 from .general import ProwlarrGeneralSettings
 from .indexers import ProwlarrIndexersSettings
 from .notifications import ProwlarrNotificationsSettings
 from .tags import ProwlarrTagsSettings
 from .ui import ProwlarrUISettings
-
-# from .download_clients import ProwlarrDownloadClientsSettings
 
 if TYPE_CHECKING:
     from ...secrets import ProwlarrSecrets
@@ -44,7 +43,7 @@ class ProwlarrSettings(ProwlarrConfigBase):
 
     indexers: ProwlarrIndexersSettings = ProwlarrIndexersSettings()
     apps: ProwlarrAppsSettings = ProwlarrAppsSettings()
-    # download_clients: ProwlarrDownloadClients = ProwlarrDownloadClientsSettings()
+    download_clients: ProwlarrDownloadClientsSettings = ProwlarrDownloadClientsSettings()
     notifications: ProwlarrNotificationsSettings = ProwlarrNotificationsSettings()
     tags: ProwlarrTagsSettings = ProwlarrTagsSettings()
     general: ProwlarrGeneralSettings = ProwlarrGeneralSettings()
@@ -80,12 +79,12 @@ class ProwlarrSettings(ProwlarrConfigBase):
                     remote.apps,
                     check_unmanaged=check_unmanaged,
                 ),
-                # self.download_clients.update_remote(
-                #     f"{tree}.download_clients",
-                #     secrets,
-                #     remote.download_clients,
-                #     check_unmanaged=check_unmanaged,
-                # ),
+                self.download_clients.update_remote(
+                    f"{tree}.download_clients",
+                    secrets,
+                    remote.download_clients,
+                    check_unmanaged=check_unmanaged,
+                ),
                 self.notifications.update_remote(
                     f"{tree}.notifications",
                     secrets,

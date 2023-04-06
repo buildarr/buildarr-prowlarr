@@ -119,7 +119,7 @@ class Proxy(ProwlarrConfigBase):
         remote_attrs = {"name": proxy_name, **api_schema, **set_attrs}
         with prowlarr_api_client(secrets=secrets) as api_client:
             prowlarr.IndexerProxyApi(api_client).create_indexer_proxy(
-                notification_resource=prowlarr.IndexerProxyResource.from_dict(remote_attrs),
+                indexer_proxy_resource=prowlarr.IndexerProxyResource.from_dict(remote_attrs),
             )
 
     def _update_remote(
@@ -410,7 +410,7 @@ class ProxiesSettings(ProwlarrConfigBase):
         return cls(
             definitions={
                 api_proxy["name"]: PROXY_TYPE_MAP[
-                    api_proxy["implementationName"].lower()
+                    api_proxy.implementation_name.lower()
                 ]._from_remote(tag_ids=tag_ids, remote_attrs=api_proxy.to_dict())
                 for api_proxy in api_proxies
             },

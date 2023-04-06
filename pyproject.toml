@@ -42,14 +42,9 @@ packages = [{include = "buildarr_prowlarr"}]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<4.0"
-buildarr = ">=0.4.0,<0.5.0"
 prowlarr-py = ">=0.3.2,<0.4.0"
-
-[tool.poetry.group.sonarr]
-optional = true
-
-[tool.poetry.group.sonarr.dependencies]
-buildarr-sonarr = ">=0.4.0"
+buildarr = ">=0.4.0,<0.5.0"
+buildarr-sonarr = {version = ">=0.4.0", optional = true}
 
 [tool.poetry.group.dev.dependencies]
 black = "23.1.0"
