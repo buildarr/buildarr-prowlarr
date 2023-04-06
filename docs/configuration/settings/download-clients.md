@@ -1,43 +1,31 @@
 # Download Clients
 
-##### ::: buildarr_sonarr.config.download_clients.SonarrDownloadClientsSettingsConfig
+##### ::: buildarr_prowlarr.config.settings.download_clients.ProwlarrDownloadClientsSettings
     options:
       members:
-        - enable_completed_download_handling
-        - redownload_failed
         - delete_unmanaged
         - definitions
-        - remote_path_mappings
       show_root_heading: false
       show_source: false
 
-!!! note
-
-    Before Sonarr can send requests to download clients, at least one Usenet or
-    torrent [indexer](indexers.md) will need to be configured.
-    Sonarr will then send download requests to a compatible client,
-    or the download client the indexer has been assigned to.
-
 ## Configuring download clients
 
-##### ::: buildarr_sonarr.config.download_clients.download_clients.DownloadClient
+##### ::: buildarr_prowlarr.config.settings.download_clients.base.DownloadClient
     options:
       members:
         - enable
         - priority
-        - remove_completed_downloads
-        - remove_failed_downloads
         - tags
       show_root_heading: false
       show_source: false
 
 ## Usenet download clients
 
-These download clients retrieve media using the popular [Usenet](https://en.wikipedia.org/wiki/Usenet) discussion and content delivery system.
+These download clients retrieve media using the [Usenet](https://en.wikipedia.org/wiki/Usenet) discussion and content delivery system.
 
-## Download Station
+## Download Station (Usenet)
 
-##### ::: buildarr_sonarr.config.download_clients.download_clients.DownloadstationUsenetDownloadClient
+##### ::: buildarr_prowlarr.config.settings.download_clients.usenet.DownloadstationUsenetDownloadClient
     options:
       members:
         - type
@@ -53,7 +41,7 @@ These download clients retrieve media using the popular [Usenet](https://en.wiki
 
 ## NZBGet
 
-##### ::: buildarr_sonarr.config.download_clients.download_clients.NzbgetDownloadClient
+##### ::: buildarr_prowlarr.config.settings.download_clients.usenet.NzbgetDownloadClient
     options:
       members:
         - type
@@ -64,15 +52,14 @@ These download clients retrieve media using the popular [Usenet](https://en.wiki
         - username
         - password
         - category
-        - recent_priority
-        - older_priority
+        - client_priority
         - add_paused
       show_root_heading: false
       show_source: false
 
 ## NZBVortex
 
-##### ::: buildarr_sonarr.config.download_clients.download_clients.NzbvortexDownloadClient
+##### ::: buildarr_prowlarr.config.settings.download_clients.usenet.NzbvortexDownloadClient
     options:
       members:
         - type
@@ -82,25 +69,23 @@ These download clients retrieve media using the popular [Usenet](https://en.wiki
         - url_base
         - api_key
         - category
-        - recent_priority
-        - older_priority
+        - client_priority
       show_root_heading: false
       show_source: false
 
 ## Pneumatic
 
-##### ::: buildarr_sonarr.config.download_clients.download_clients.PneumaticDownloadClient
+##### ::: buildarr_prowlarr.config.settings.download_clients.usenet.PneumaticDownloadClient
     options:
       members:
         - type
         - nzb_folder
-        - strm_folder
       show_root_heading: false
       show_source: false
 
 ## SABnzbd
 
-##### ::: buildarr_sonarr.config.download_clients.download_clients.SabnzbdDownloadClient
+##### ::: buildarr_prowlarr.config.settings.download_clients.usenet.SabnzbdDownloadClient
     options:
       members:
         - type
@@ -110,19 +95,17 @@ These download clients retrieve media using the popular [Usenet](https://en.wiki
         - url_base
         - api_key
         - category
-        - recent_priority
-        - older_priority
+        - client_priority
       show_root_heading: false
       show_source: false
 
 ## Usenet Blackhole
 
-##### ::: buildarr_sonarr.config.download_clients.download_clients.UsenetBlackholeDownloadClient
+##### ::: buildarr_prowlarr.config.settings.download_clients.usenet.UsenetBlackholeDownloadClient
     options:
       members:
         - type
         - nzb_folder
-        - watch_folder
       show_root_heading: false
       show_source: false
 
@@ -133,7 +116,7 @@ peer-to-peer file sharing protocol to retrieve media files.
 
 ## Aria2
 
-##### ::: buildarr_sonarr.config.download_clients.download_clients.Aria2DownloadClient
+##### ::: buildarr_prowlarr.config.settings.download_clients.torrent.Aria2DownloadClient
     options:
       members:
         - type
@@ -147,7 +130,7 @@ peer-to-peer file sharing protocol to retrieve media files.
 
 ## Deluge
 
-##### ::: buildarr_sonarr.config.download_clients.download_clients.DelugeDownloadClient
+##### ::: buildarr_prowlarr.config.settings.download_clients.torrent.DelugeDownloadClient
     options:
       members:
         - type
@@ -157,15 +140,13 @@ peer-to-peer file sharing protocol to retrieve media files.
         - url_base
         - password
         - category
-        - postimport_category
-        - recent_priority
-        - older_priority
+        - client_priority
       show_root_heading: false
       show_source: false
 
-## Download Station
+## Download Station (Torrent)
 
-##### ::: buildarr_sonarr.config.download_clients.download_clients.DownloadstationTorrentDownloadClient
+##### ::: buildarr_prowlarr.config.settings.download_clients.torrent.DownloadstationTorrentDownloadClient
     options:
       members:
         - type
@@ -181,7 +162,7 @@ peer-to-peer file sharing protocol to retrieve media files.
 
 ## Flood
 
-##### ::: buildarr_sonarr.config.download_clients.download_clients.FloodDownloadClient
+##### ::: buildarr_prowlarr.config.settings.download_clients.torrent.FloodDownloadClient
     options:
       members:
         - type
@@ -193,15 +174,14 @@ peer-to-peer file sharing protocol to retrieve media files.
         - password
         - destination
         - flood_tags
-        - postimport_tags
         - additional_tags
-        - start_on_add
+        - add_paused
       show_root_heading: false
       show_source: false
 
 ## Hadouken
 
-##### ::: buildarr_sonarr.config.download_clients.download_clients.HadoukenDownloadClient
+##### ::: buildarr_prowlarr.config.settings.download_clients.torrent.HadoukenDownloadClient
     options:
       members:
         - type
@@ -217,7 +197,7 @@ peer-to-peer file sharing protocol to retrieve media files.
 
 ## qBittorrent
 
-##### ::: buildarr_sonarr.config.download_clients.download_clients.QbittorrentDownloadClient
+##### ::: buildarr_prowlarr.config.settings.download_clients.torrent.QbittorrentDownloadClient
     options:
       members:
         - type
@@ -228,9 +208,7 @@ peer-to-peer file sharing protocol to retrieve media files.
         - username
         - password
         - category
-        - postimport_category
-        - recent_priority
-        - older_priority
+        - client_priority
         - initial_state
         - sequential_order
         - first_and_last_first
@@ -239,7 +217,7 @@ peer-to-peer file sharing protocol to retrieve media files.
 
 ## RTorrent (ruTorrent)
 
-##### ::: buildarr_sonarr.config.download_clients.download_clients.RtorrentDownloadClient
+##### ::: buildarr_prowlarr.config.settings.download_clients.torrent.RtorrentDownloadClient
     options:
       members:
         - type
@@ -250,21 +228,18 @@ peer-to-peer file sharing protocol to retrieve media files.
         - username
         - password
         - category
-        - postimport_category
-        - recent_priority
-        - older_priority
+        - client_priority
         - add_stopped
       show_root_heading: false
       show_source: false
 
 ## Torrent Blackhole
 
-##### ::: buildarr_sonarr.config.download_clients.download_clients.TorrentBlackholeDownloadClient
+##### ::: buildarr_prowlarr.config.settings.download_clients.torrent.TorrentBlackholeDownloadClient
     options:
       members:
         - type
         - torrent_folder
-        - watch_folder
         - save_magnet_files
         - magnet_file_extension
         - read_only
@@ -279,7 +254,7 @@ To use Transmission, set the `type` attribute in the download client to `transmi
 
 To use Vuze, set the `type` attribute in the download client to `vuze`.
 
-##### ::: buildarr_sonarr.config.download_clients.download_clients.TransmissionDownloadClientBase
+##### ::: buildarr_prowlarr.config.settings.download_clients.torrent.TransmissionDownloadClientBase
     options:
       members:
         - host
@@ -290,15 +265,14 @@ To use Vuze, set the `type` attribute in the download client to `vuze`.
         - password
         - category
         - directory
-        - recent_priority
-        - older_priority
+        - client_priority
         - add_paused
       show_root_heading: false
       show_source: false
 
 ## uTorrent
 
-##### ::: buildarr_sonarr.config.download_clients.download_clients.UtorrentDownloadClient
+##### ::: buildarr_prowlarr.config.settings.download_clients.torrent.UtorrentDownloadClient
     options:
       members:
         - type
@@ -309,31 +283,7 @@ To use Vuze, set the `type` attribute in the download client to `vuze`.
         - username
         - password
         - category
-        - postimport_category
-        - recent_priority
-        - older_priority
+        - client_priority
         - initial_state
-      show_root_heading: false
-      show_source: false
-
-## Configuring remote path mappings
-
-##### ::: buildarr_sonarr.config.download_clients.remote_path_mappings.SonarrRemotePathMappingsSettingsConfig
-    options:
-      members:
-        - delete_unmanaged
-        - definitions
-      show_root_heading: false
-      show_source: false
-
-### Remote path mapping parameters
-
-##### ::: buildarr_sonarr.config.download_clients.remote_path_mappings.RemotePathMapping
-    options:
-      members:
-        - host
-        - remote_path
-        - local_path
-        - ensure
       show_root_heading: false
       show_source: false

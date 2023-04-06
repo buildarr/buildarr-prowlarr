@@ -103,9 +103,18 @@ DownloadClientType = Union[
 
 class ProwlarrDownloadClientsSettings(ProwlarrConfigBase):
     """
-    Download clients retrieve media files being tracked by Prowlarr,
-    and store them in a location Prowlarr can access to manage the
-    downloaded files.
+    Download clients are entirely optional in Prowlarr, but are available
+    so you can manually perform grabs entirely within Prowlarr.
+
+    In Buildarr, download clients for Prowlarr are configured in
+    [much the same way](https://buildarr.github.io/plugins/sonarr/configuration/download-clients)
+    as they are for Sonarr, although some attributes are different.
+
+    The main differences are:
+
+    * All instances of the `recent_priority` attribute are renamed to `client_priority`.
+    * The `older_priority` attribute has been removed.
+    * Any attribute relating to post-import management has been removed.
 
     Download clients that use Usenet or BitTorrent can be configured.
 
@@ -131,7 +140,7 @@ class ProwlarrDownloadClientsSettings(ProwlarrConfigBase):
 
     definitions: Dict[str, Annotated[DownloadClientType, Field(discriminator="type")]] = {}
     """
-    Download client definitions, for connecting with external media downloaders.
+    Define download clients under this attribute.
     """
 
     @classmethod

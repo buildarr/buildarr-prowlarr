@@ -41,41 +41,62 @@ logger = getLogger(__name__)
 
 class Indexer(ProwlarrConfigBase):
     """
-    Here is an example of an indexer being configured in the `indexers` configuration
-    block in Buildarr.
+    The Prowlarr plugin employs a generic configuration structure for defining indexers,
+    where attributes common to all indexer types are individually defined, and
+    fields unique to each indexer type are set using Prowlarr's internal representation.
+
+    Below is an example of two indexers being configured in this manner.
+    Type-specific configuration attribute are defined under the `fields`
+    attribute.
+
+    There is also a `secret_fields` attribute for defining sensitive information
+    such as API keys.
 
     ```yaml
-    ...
-      indexers:
-        definitions:
-          Nyaa: # Indexer name
-            type: "nyaa" # Type of indexer
-            # Configuration common to all indexers
-            enable_rss: true
-            enable_automatic_search: true
-            enable_interactive_search: true
-            anime_standard_format_search: true
-            indexer_priority: 25
-            download_client: null
-            tags:
-              - "example"
-            # Nyaa-specific configuration
-            website_url: "https://example.com"
-          # Define more indexers here.
+    prowlarr:
+      settings:
+        indexers:
+          indexers:
+            definitions:
+              "1337x":
+                type: "1337x"
+                enable: true
+                sync_profile: "Standard"
+                redirect: false
+                priority: 1
+                query_limit: 4
+                grab_limit: 4
+                tags:
+                  - "shows"
+                fields:
+                  "torrentBaseSettings.seedRatio": 3
+                  "sort": "created"
+                  "type": "desc"
+              "Nyaa.si":
+                type: "nyaasi"
+                enable: true
+                sync_profile: "Standard"
+                redirect: false
+                priority: 1
+                query_limit: 4
+                grab_limit: 4
+                tags:
+                  - "anime"
+                fields:
+                  "torrentBaseSettings.seedRatio": 3
+                  "sort": "created"
+                  "type": "desc"
+                  "cat-id": "All categories"
+                  "filter-id": "No filter"
+                  "prefer_magnet_links": true
     ```
 
-    There are configuration parameters common to all indexer types,
-    and parameters common to only specific types of indexers.
-
-    The following configuration attributes can be defined on all indexer types.
+    Attributes common to all indexer types are documented below.
     """
 
     type: LowerCaseNonEmptyStr
     """
-    The name of the site being accessed by this indexer.
-
-    This is used to determine the defaults for many indexer attributes, such as the
-    available indexer base URLs.
+    The type of indexer to manage. This attribute is unique to each indexer site.
     """
 
     enable: bool = False
@@ -86,6 +107,9 @@ class Indexer(ProwlarrConfigBase):
     sync_profile: NonEmptyStr
     """
     The application sync profile to use for this indexer.
+
+    [App Sync Profiles](../apps/sync-profiles.md) should be configured before
+    using it in an indexer.
     """
 
     redirect: bool = False
@@ -96,17 +120,11 @@ class Indexer(ProwlarrConfigBase):
     Only supported by some indexer types.
     """
 
-    indexer_priority: int = Field(25, ge=1, le=50)
+    priority: int = Field(25, ge=1, le=50)
     """
     Priority of this indexer to prefer one indexer over another in release tiebreaker scenarios.
 
     1 is highest priority and 50 is lowest priority.
-    """
-
-    tags: Set[NonEmptyStr] = set()
-    """
-    Only use this indexer for series with at least one matching tag.
-    Leave blank to use with all series.
     """
 
     query_limit: Optional[Annotated[int, Field(ge=0)]] = None
@@ -123,9 +141,27 @@ class Indexer(ProwlarrConfigBase):
     If empty, undefined or set to `0`, use no limit.
     """
 
+    tags: Set[NonEmptyStr] = set()
+    """
+    Tags to associate this indexer with.
+
+    Generally used to associate indexers with applications.
+    """
+
     fields: Dict[str, Any] = {}
+    """
+    Define configuration attributes unique to each indexer type.
+
+    If an attribute is not defined, its default value is used.
+    """
 
     secret_fields: Dict[str, Password] = {}
+    """
+    Same as `fields`, but used for string attributes containing sensitive information
+    such as API keys.
+
+    Any attributes defined here will have their values hidden in the Buildarr log output.
+    """
 
     @classmethod
     def _get_base_remote_map(
@@ -147,7 +183,7 @@ class Indexer(ProwlarrConfigBase):
                 },
             ),
             ("redirect", "redirect", {}),
-            ("indexer_priority", "priority", {}),
+            ("priority", "priority", {}),
             (
                 "tags",
                 "tags",
@@ -479,48 +515,38 @@ class Indexer(ProwlarrConfigBase):
 class IndexersSettings(ProwlarrConfigBase):
     """
     Indexers are used to monitor for new releases of media on external trackers.
-    When a suitable release has been found, Prowlarr registers it for download
-    on one of the configured download clients.
+
+    Prowlarr acts as a proxy for configured indexer sites. Configured applications
+    will subscribe to Prowlarr, which will perform searches on the applications'
+    behalf, and return the results.
+
+    The applications will then decide whether or not to fetch the release, and if so,
+    schedule grabs with their own configured download clients.
+
+    For more information on correctly setting up Prowlarr indexers, refer to the
+    [Prowlarr indexers configuration guide](https://wiki.servarr.com/prowlarr/indexers) on WikiArr.
+
+    In Buildarr, Prowlarr indexers are configured under the following structure:
 
     ```yaml
     prowlarr:
-      config:
+      settings:
         indexers:
-          minimum_age: 0
-          retention: 0
-          maximum_size: 0
-          rss_sync_interval: 15
-          delete_unmanaged: false # Better to leave off for the most part
-          definitions:
-            Nyaa: # Indexer name
-              type: "nyaa" # Type of indexer
-              # Configuration common to all indexers
-              enable_rss: true
-              enable_automatic_search: true
-              enable_interactive_search: true
-              anime_standard_format_search: true
-              indexer_priority: 25
-              download_client: null
-              tags:
-                - "example"
-              # Nyaa-specific configuration
-              website_url: "https://example.com"
-            # Define more indexers here.
+          indexers:
+            delete_unmanaged: false  # Do not delete indexers not setup by Buildarr by default.
+            definitions:
+              "Indexer1":
+                type: nyaasi
+                ...
+              "Indexer2":
+                type: 1337x
+                ...
     ```
-
-    The following parameters are available for configuring indexers and
-    how they are handled by Prowlarr.
-
-    For more information on how Prowlarr finds epsiodes, refer to the FAQ on
-    [WikiArr](https://wiki.servarr.com/prowlarr/faq#how-does-prowlarr-find-episodes).
     """
 
     delete_unmanaged: bool = False
     """
     Automatically delete indexers not configured by Buildarr.
-
-    Take care when enabling this option, as it will also delete indexers
-    created by external applications such as Prowlarr.
 
     If unsure, leave set at the default of `false`.
     """

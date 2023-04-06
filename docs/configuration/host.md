@@ -1,6 +1,6 @@
 # Host Configuration
 
-##### ::: buildarr_sonarr.config.SonarrInstanceConfig
+##### ::: buildarr_prowlarr.config.ProwlarrInstanceConfig
     options:
       members:
         - hostname

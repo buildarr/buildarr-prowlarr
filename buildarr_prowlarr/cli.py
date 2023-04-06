@@ -85,7 +85,7 @@ def dump_config(url: str, api_key: str) -> int:
                 api_key=api_key,
             ),
         )
-        .yaml(exclude_unset=True),
+        .yaml(),
     )
 
     return 0

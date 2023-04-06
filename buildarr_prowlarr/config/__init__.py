@@ -45,7 +45,7 @@ else:
 
 class ProwlarrInstanceConfig(_ProwlarrInstanceConfig):
     """
-    By default, Buildarr will look for a single instance at `http://prowlarr:8989`.
+    By default, Buildarr will look for a single instance at `http://prowlarr:9696`.
     Most configurations are different, and to accommodate those, you can configure
     how Buildarr connects to individual Prowlarr instances.
 
@@ -54,7 +54,7 @@ class ProwlarrInstanceConfig(_ProwlarrInstanceConfig):
     ```yaml
     prowlarr:
       hostname: "prowlarr.example.com"
-      port: 8989
+      port: 9696
       protocol: "http"
       settings:
         ...
@@ -65,7 +65,7 @@ class ProwlarrInstanceConfig(_ProwlarrInstanceConfig):
     ```yaml
     prowlarr:
       # Configuration and settings common to all instances.
-      port: 8989
+      port: 9696
       settings:
         ...
       instances:
@@ -109,6 +109,11 @@ class ProwlarrInstanceConfig(_ProwlarrInstanceConfig):
     protocol: ProwlarrProtocol = "http"  # type: ignore[assignment]
     """
     Communication protocol to use to connect to Prowlarr.
+
+    Values:
+
+    * `http`
+    * `https`
     """
 
     api_key: Optional[ArrApiKey] = None

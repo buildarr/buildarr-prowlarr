@@ -20,14 +20,19 @@ nav:
   - Release Notes: "release-notes.md"
   - Configuration:
     - Host Configuration: "configuration/host.md"
-    - Indexers: "configuration/indexers.md"
-    - Apps: "configuration/apps.md"
-    - Download Clients: "configuration/download-clients.md"
-    - Notifications: "configuration/notifications.md"
-    - Tags: "configuration/tags.md"
-    - General: "configuration/general.md"
-    - UI: "configuration/ui.md"
+    - Settings:
+      - Indexers:
+        - Indexers: "configuration/settings/indexers/indexers.md"
+        - Proxies: "configuration/settings/indexers/proxies.md"
+      - Apps:
+        - Applications: "configuration/settings/apps/applications.md"
+        - Sync Profiles: "configuration/settings/apps/sync-profiles.md"
+      - Download Clients: "configuration/settings/download-clients.md"
+      - Notifications: "configuration/settings/notifications.md"
+      - Tags: "configuration/settings/tags.md"
+      - General: "configuration/settings/general.md"
+      - UI: "configuration/settings/ui.md"
   - Buildarr: "https://buildarr.github.io"
 
 watch:
-  - buildarr_buildarr
+  - buildarr_prowlarr
