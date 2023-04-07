@@ -171,9 +171,9 @@ class ProwlarrDownloadClientsSettings(ProwlarrConfigBase):
         remote: Self,
         check_unmanaged: bool = False,
     ) -> bool:
-        #
+        # Track whether or not any changes have been made on the remote instance.
         changed = False
-        #
+        # Pull API objects and metadata required during the update operation.
         with prowlarr_api_client(secrets=secrets) as api_client:
             downloadclient_api = prowlarr.DownloadClientApi(api_client)
             api_downloadclient_schemas = downloadclient_api.list_download_client_schema()
@@ -187,10 +187,12 @@ class ProwlarrDownloadClientsSettings(ProwlarrConfigBase):
                 or any(downloadclient.tags for downloadclient in remote.definitions.values())
                 else {}
             )
-        #
+        # Compare local definitions to their remote equivalent.
+        # If a local definition does not exist on the remote, create it.
+        # If it does exist on the remote, attempt an an in-place modification,
+        # and set the `changed` flag if modifications were made.
         for downloadclient_name, downloadclient in self.definitions.items():
             downloadclient_tree = f"{tree}.definitions[{repr(downloadclient_name)}]"
-            #
             if downloadclient_name not in remote.definitions:
                 downloadclient._create_remote(
                     tree=downloadclient_tree,
@@ -200,7 +202,6 @@ class ProwlarrDownloadClientsSettings(ProwlarrConfigBase):
                     downloadclient_name=downloadclient_name,
                 )
                 changed = True
-            #
             elif downloadclient._update_remote(
                 tree=downloadclient_tree,
                 secrets=secrets,
@@ -210,7 +211,11 @@ class ProwlarrDownloadClientsSettings(ProwlarrConfigBase):
                 api_downloadclient=api_downloadclients[downloadclient_name],
             ):
                 changed = True
-        #
+        # Traverse the remote definitions, and see if there are any remote definitions
+        # that do not exist in the local configuration.
+        # If `delete_unmanaged` is enabled, delete it from the remote.
+        # If `delete_unmanaged` is disabled, just add a log entry acknowledging
+        # the existence of the unmanaged definition.
         for downloadclient_name, downloadclient in remote.definitions.items():
             if downloadclient_name not in self.definitions:
                 downloadclient_tree = f"{tree}.definitions[{repr(downloadclient_name)}]"
@@ -223,5 +228,5 @@ class ProwlarrDownloadClientsSettings(ProwlarrConfigBase):
                     changed = True
                 else:
                     logger.debug("%s: (...) (unmanaged)", downloadclient_tree)
-        #
+        # Return whether or not the remote instance was changed.
         return changed

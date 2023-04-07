@@ -67,16 +67,16 @@ class ProwlarrSettings(ProwlarrConfigBase):
                     remote.tags,
                     check_unmanaged=check_unmanaged,
                 ),
-                self.indexers.update_remote(
-                    f"{tree}.indexers",
-                    secrets,
-                    remote.indexers,
-                    check_unmanaged=check_unmanaged,
-                ),
                 self.apps.update_remote(
                     f"{tree}.apps",
                     secrets,
                     remote.apps,
+                    check_unmanaged=check_unmanaged,
+                ),
+                self.indexers.update_remote(
+                    f"{tree}.indexers",
+                    secrets,
+                    remote.indexers,
                     check_unmanaged=check_unmanaged,
                 ),
                 self.download_clients.update_remote(

@@ -13,7 +13,7 @@
 
 
 """
-Prowlarr plugin indexer configuration.
+Prowlarr plugin indexer configuration section.
 """
 
 

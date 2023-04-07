@@ -13,7 +13,7 @@
 
 
 """
-Prowlarr plugin UI settings configuration object.
+Prowlarr plugin UI settings configuration.
 """
 
 

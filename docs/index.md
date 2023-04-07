@@ -82,18 +82,18 @@ The following sections cover comprehensive configuration of a Prowlarr instance.
 Note that these documents do not show how you *should* configure a Prowlarr instance. Rather, they show how you *can* configure a Prowlarr instance the way you want with Buildarr. For more information on how to optimally configure Prowlarr, you can refer to the excellent guides from [WikiArr](https://wiki.servarr.com/prowlarr) and [TRaSH-Guides](https://trash-guides.info/Prowlarr/).
 
 * [Host Configuration](configuration/host.md)
-* Settings:
-    * Indexers:
+* Settings
+    * Indexers
         * [Indexers](configuration/settings/indexers/indexers.md)
         * [Proxies](configuration/settings/indexers/proxies.md)
-    * Apps:
+    * Apps
         * [Applications](configuration/settings/apps/applications.md)
         * [Sync Profiles](configuration/settings/apps/sync-profiles.md)
     * [Download Clients](configuration/settings/download-clients.md)
     * [Notifications](configuration/settings/notifications.md)
     * [Tags](configuration/settings/tags.md)
-    * [General](prowlarr/configuration/settings/general.md)
-    * [UI](prowlarr/configuration/settings/ui.md)
+    * [General](configuration/settings/general.md)
+    * [UI](configuration/settings/ui.md)
 
 ## Dumping an existing Prowlarr instance configuration
 

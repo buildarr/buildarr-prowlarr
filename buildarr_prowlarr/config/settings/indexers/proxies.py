@@ -13,7 +13,7 @@
 
 
 """
-Prowlarr plugin indexer proxy settings configuration.
+Prowlarr plugin indexer proxy configuration.
 """
 
 
@@ -25,7 +25,7 @@ from typing import Any, Dict, List, Literal, Mapping, Optional, Set, Tuple, Type
 import prowlarr
 
 from buildarr.config import RemoteMapEntry
-from buildarr.types import BaseEnum, NonEmptyStr, Port
+from buildarr.types import NonEmptyStr, Port
 from pydantic import AnyHttpUrl, Field, PositiveFloat, SecretStr
 from typing_extensions import Annotated, Self
 
@@ -34,14 +34,6 @@ from ....secrets import ProwlarrSecrets
 from ...types import ProwlarrConfigBase
 
 logger = getLogger(__name__)
-
-
-class SyncLevel(BaseEnum):
-    """ """
-
-    disabled = "disabled"
-    add_and_remove_only = "addOnly"
-    full_sync = "fullSync"
 
 
 class Proxy(ProwlarrConfigBase):
@@ -446,9 +438,9 @@ class ProxiesSettings(ProwlarrConfigBase):
         remote: Self,
         check_unmanaged: bool = False,
     ) -> bool:
-        #
+        # Track whether or not any changes have been made on the remote instance.
         changed = False
-        #
+        # Pull API objects and metadata required during the update operation.
         with prowlarr_api_client(secrets=secrets) as api_client:
             indexer_proxy_api = prowlarr.IndexerProxyApi(api_client)
             api_proxy_schemas = indexer_proxy_api.list_indexer_proxy_schema()
@@ -461,10 +453,12 @@ class ProxiesSettings(ProwlarrConfigBase):
                 or any(proxy.tags for proxy in remote.definitions.values())
                 else {}
             )
-        #
+        # Compare local definitions to their remote equivalent.
+        # If a local definition does not exist on the remote, create it.
+        # If it does exist on the remote, attempt an an in-place modification,
+        # and set the `changed` flag if modifications were made.
         for proxy_name, proxy in self.definitions.items():
             proxy_tree = f"{tree}.definitions[{repr(proxy_name)}]"
-            #
             if proxy_name not in remote.definitions:
                 proxy._create_remote(
                     tree=proxy_tree,
@@ -474,7 +468,6 @@ class ProxiesSettings(ProwlarrConfigBase):
                     proxy_name=proxy_name,
                 )
                 changed = True
-            #
             elif proxy._update_remote(
                 tree=proxy_tree,
                 secrets=secrets,
@@ -484,7 +477,11 @@ class ProxiesSettings(ProwlarrConfigBase):
                 api_proxy=api_proxies[proxy_name],
             ):
                 changed = True
-        #
+        # Traverse the remote definitions, and see if there are any remote definitions
+        # that do not exist in the local configuration.
+        # If `delete_unmanaged` is enabled, delete it from the remote.
+        # If `delete_unmanaged` is disabled, just add a log entry acknowledging
+        # the existence of the unmanaged definition.
         for proxy_name, proxy in remote.definitions.items():
             if proxy_name not in self.definitions:
                 proxy_tree = f"{tree}.definitions[{repr(proxy_name)}]"
@@ -497,5 +494,5 @@ class ProxiesSettings(ProwlarrConfigBase):
                     changed = True
                 else:
                     logger.debug("%s: (...) (unmanaged)", proxy_tree)
-        #
+        # Return whether or not the remote instance was changed.
         return changed

@@ -26,4 +26,4 @@ __all__ = ["__version__"]
 try:
     __version__: str = package_version("buildarr-prowlarr")
 except PackageNotFoundError:
-    __version__ = "0.4.0"
+    __version__ = "0.1.0"

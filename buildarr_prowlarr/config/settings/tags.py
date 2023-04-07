@@ -13,7 +13,7 @@
 
 
 """
-Prowlarr plugin tags settings configuration.
+Prowlarr plugin tags configuration.
 """
 
 

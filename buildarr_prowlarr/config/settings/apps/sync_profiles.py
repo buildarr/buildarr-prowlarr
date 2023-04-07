@@ -13,7 +13,7 @@
 
 
 """
-Prowlarr plugin application sync profile configuration.
+Prowlarr plugin app sync profile configuration.
 """
 
 
@@ -178,10 +178,15 @@ class SyncProfilesSettings(ProwlarrConfigBase):
         remote: Self,
         check_unmanaged: bool = False,
     ) -> bool:
+        # Track whether or not any changes have been made on the remote instance.
         changed = False
+        # Pull API objects and metadata required during the update operation.
         with prowlarr_api_client(secrets=secrets) as api_client:
             api_profiles = prowlarr.AppProfileApi(api_client).list_app_profile()
-        #
+        # Compare local definitions to their remote equivalent.
+        # If a local definition does not exist on the remote, create it.
+        # If it does exist on the remote, attempt an an in-place modification,
+        # and set the `changed` flag if modifications were made.
         for profile_name, profile in self.definitions.items():
             profile_tree = f"{tree}.definitions[{repr(profile_name)}]"
             if profile_name not in remote.definitions:
@@ -191,7 +196,6 @@ class SyncProfilesSettings(ProwlarrConfigBase):
                     profile_name=profile_name,
                 )
                 changed = True
-            #
             elif profile._update_remote(
                 tree=profile_tree,
                 secrets=secrets,
@@ -199,7 +203,11 @@ class SyncProfilesSettings(ProwlarrConfigBase):
                 api_profile=api_profiles[profile_name],
             ):
                 changed = True
-        #
+        # Traverse the remote definitions, and see if there are any remote definitions
+        # that do not exist in the local configuration.
+        # If `delete_unmanaged` is enabled, delete it from the remote.
+        # If `delete_unmanaged` is disabled, just add a log entry acknowledging
+        # the existence of the unmanaged definition.
         for profile_name, profile in remote.definitions.items():
             if profile_name not in self.definitions:
                 profile_tree = f"{tree}.definitions[{repr(profile_name)}]"
@@ -212,5 +220,5 @@ class SyncProfilesSettings(ProwlarrConfigBase):
                     changed = True
                 else:
                     logger.debug("%s: (...) (unmanaged)", profile_tree)
-        #
+        # Return whether or not the remote instance was changed.
         return changed

@@ -41,8 +41,6 @@ logger = getLogger(__name__)
 
 
 class SyncLevel(BaseEnum):
-    """ """
-
     disabled = "disabled"
     add_and_remove_only = "addOnly"
     full_sync = "fullSync"
@@ -646,9 +644,9 @@ class ApplicationsSettings(ProwlarrConfigBase):
         remote: Self,
         check_unmanaged: bool = False,
     ) -> bool:
-        #
+        # Track whether or not any changes have been made on the remote instance.
         changed = False
-        #
+        # Pull API objects and metadata required during the update operation.
         with prowlarr_api_client(secrets=secrets) as api_client:
             application_api = prowlarr.ApplicationApi(api_client)
             application_schemas = application_api.list_applications_schema()
@@ -671,10 +669,12 @@ class ApplicationsSettings(ProwlarrConfigBase):
                 or any(application.tags for application in remote.definitions.values())
                 else {}
             )
-        #
+        # Compare local definitions to their remote equivalent.
+        # If a local definition does not exist on the remote, create it.
+        # If it does exist on the remote, attempt an an in-place modification,
+        # and set the `changed` flag if modifications were made.
         for application_name, application in self.definitions.items():
             application_tree = f"{tree}.definitions[{repr(application_name)}]"
-            #
             if application_name not in remote.definitions:
                 application._create_remote(
                     tree=application_tree,
@@ -685,7 +685,6 @@ class ApplicationsSettings(ProwlarrConfigBase):
                     application_name=application_name,
                 )
                 changed = True
-            #
             elif application._update_remote(
                 tree=application_tree,
                 secrets=secrets,
@@ -696,7 +695,11 @@ class ApplicationsSettings(ProwlarrConfigBase):
                 api_application=api_applications[application_name],
             ):
                 changed = True
-        #
+        # Traverse the remote definitions, and see if there are any remote definitions
+        # that do not exist in the local configuration.
+        # If `delete_unmanaged` is enabled, delete it from the remote.
+        # If `delete_unmanaged` is disabled, just add a log entry acknowledging
+        # the existence of the unmanaged definition.
         for application_name, application in remote.definitions.items():
             if application_name not in self.definitions:
                 application_tree = f"{tree}.definitions[{repr(application_name)}]"
@@ -709,5 +712,5 @@ class ApplicationsSettings(ProwlarrConfigBase):
                     changed = True
                 else:
                     logger.debug("%s: (...) (unmanaged)", application_tree)
-        #
+        # Return whether or not the remote instance was changed.
         return changed

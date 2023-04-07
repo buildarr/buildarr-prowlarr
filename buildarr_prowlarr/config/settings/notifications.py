@@ -13,7 +13,7 @@
 
 
 """
-Prowlarr plugin notification connection settings configuration.
+Prowlarr plugin notification connection configuration.
 """
 
 
@@ -1233,9 +1233,9 @@ class ProwlarrNotificationsSettings(ProwlarrConfigBase):
         remote: Self,
         check_unmanaged: bool = False,
     ) -> bool:
-        #
+        # Track whether or not any changes have been made on the remote instance.
         changed = False
-        #
+        # Pull API objects and metadata required during the update operation.
         with prowlarr_api_client(secrets=secrets) as api_client:
             notification_api = prowlarr.NotificationApi(api_client)
             api_notification_schemas = notification_api.list_notification_schema()
@@ -1249,10 +1249,12 @@ class ProwlarrNotificationsSettings(ProwlarrConfigBase):
                 or any(api_notification.tags for api_notification in remote.definitions.values())
                 else {}
             )
-        #
+        # Compare local definitions to their remote equivalent.
+        # If a local definition does not exist on the remote, create it.
+        # If it does exist on the remote, attempt an an in-place modification,
+        # and set the `changed` flag if modifications were made.
         for notification_name, notification in self.definitions.items():
             notification_tree = f"{tree}.definitions[{repr(notification_name)}]"
-            #
             if notification_name not in remote.definitions:
                 notification._create_remote(
                     tree=notification_tree,
@@ -1262,7 +1264,6 @@ class ProwlarrNotificationsSettings(ProwlarrConfigBase):
                     notification_name=notification_name,
                 )
                 changed = True
-            #
             elif notification._update_remote(
                 tree=notification_tree,
                 secrets=secrets,
@@ -1272,7 +1273,11 @@ class ProwlarrNotificationsSettings(ProwlarrConfigBase):
                 api_notification=api_notifications[notification_name],
             ):
                 changed = True
-        #
+        # Traverse the remote definitions, and see if there are any remote definitions
+        # that do not exist in the local configuration.
+        # If `delete_unmanaged` is enabled, delete it from the remote.
+        # If `delete_unmanaged` is disabled, just add a log entry acknowledging
+        # the existence of the unmanaged definition.
         for notification_name, notification in remote.definitions.items():
             if notification_name not in self.definitions:
                 notification_tree = f"{tree}.definitions[{repr(notification_name)}]"
@@ -1285,5 +1290,5 @@ class ProwlarrNotificationsSettings(ProwlarrConfigBase):
                     changed = True
                 else:
                     logger.debug("%s: (...) (unmanaged)", notification_tree)
-        #
+        # Return whether or not the remote instance was changed.
         return changed

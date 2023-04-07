@@ -13,7 +13,7 @@
 
 
 """
-Prowlarr plugin indexers settings configuration.
+Prowlarr plugin indexer configuration.
 """
 
 
@@ -234,12 +234,18 @@ class Indexer(ProwlarrConfigBase):
         tag_ids: Mapping[str, int],
         remote_attrs: Mapping[str, Any],
     ) -> Self:
-        #
+        # Generate the remote map for reading attribute values.
         remote_map = cls._get_base_remote_map(sync_profile_ids, tag_ids)
+        # Create a structure storing the names of all individually-defined
+        # attributes that are fields.
+        # These are excluded from the dynamically generated `fields`/`secret_fields`
+        # structure.
         remote_map_fields = set(
             (entry[1] for entry in remote_map if entry[2].get("is_field", False)),
         )
+        # Parse individually-defined attributes from the remote API object.
         common_attrs = cls.get_local_attrs(remote_map, remote_attrs)
+        # Parse indexer-specific fields from the remote API object.
         fields: Dict[str, Any] = {}
         secret_fields: Dict[str, str] = {}
         for field in remote_attrs["fields"]:
@@ -252,9 +258,14 @@ class Indexer(ProwlarrConfigBase):
             # which are defined as proper indexer attributes.
             if field["name"] in remote_map_fields:
                 continue
+            # Get the field name and its lowercase variant (for case-insensitive checks).
             name: str = field["name"]
             lowercase_name = name.lower()
-            #
+            # If the field is of type `select` (an enumeration), instead of
+            # exposing the raw values, use the names associated with them
+            # to represent the value in the local configuration.
+            # If the enumeration uses the indexer URLs instead of defined names,
+            # handle that so the URLs are retrieved properly.
             if field["type"] == "select" and field["value"] is not None:
                 if field.get("selectOptionsProviderAction", None) == "getUrls":
                     value: Any = remote_attrs["indexerUrls"][field["value"]]
@@ -265,13 +276,16 @@ class Indexer(ProwlarrConfigBase):
                         value = field["value"]
             else:
                 value = field["value"]
-            #
+            # Add the attribute to `secret_fields` if it looks like
+            # a password or key string of some sort.
+            # Otherwise, add it to `fields`.
             if field["type"] == "textbox" and any(
                 phrase in lowercase_name for phrase in ("key", "pass")
             ):
                 secret_fields[name] = value
             else:
                 fields[name] = value
+        # Construct the local configuration object from the parsed values.
         return cls(
             **common_attrs,
             fields=fields,
@@ -287,22 +301,31 @@ class Indexer(ProwlarrConfigBase):
         tag_ids: Mapping[str, int],
         indexer_name: str,
     ) -> None:
-        #
+        # Get the API schema for this indexer type.
+        # This will supply all the attributes not defined in the indexer object,
+        # and ensure the fields are ordered correctly.
         api_schema = self._get_api_schema(api_indexer_schemas)
-        #
+        # Generate the remote map for encoding local attribute values.
         remote_map = self._get_base_remote_map(sync_profile_ids, tag_ids)
+        # Create a structure storing the names of all individually-defined
+        # attributes that are fields.
+        # These are used to ensure individually defined fields are retrieved
+        # from the correct structure when adding them to the outbound API object.
         remote_map_fields = set(
             (entry[1] for entry in remote_map if entry[2].get("is_field", False)),
         )
-        #
+        # Encode individually-defined attributes from the local configuration.
+        # Separate field attributes into a different structure, so they can
+        # be combined with the dynamic field attributes.
         common_attrs = self.get_create_remote_attrs(tree, remote_map)
         common_fields: List[Dict[str, Any]] = common_attrs["fields"]
         del common_attrs["fields"]
-        #
+        # Encode all field attributes into the outbound API object.
         fields: List[Dict[str, Any]] = []
         for field in api_schema["fields"]:
             name = field["name"]
-            #
+            # If the field is an individually-defined attribute, retrieve the
+            # encoded attribute value.
             if name in remote_map_fields:
                 for f in common_fields:
                     if f["name"] == name:
@@ -311,7 +334,9 @@ class Indexer(ProwlarrConfigBase):
                 else:
                     raise RuntimeError(f"Unable to find field '{name}' in common attrs")
                 continue
-            #
+            # Retrieve the dynamically generated field value from wherever it was defined
+            # (either `fields` or `secret_fields`).
+            # If undefined in either, use the default value defined in the API schema.
             try:
                 value = self.secret_fields[name]
                 attr_name = "secret_fields"
@@ -322,7 +347,8 @@ class Indexer(ProwlarrConfigBase):
                 attr_name = "fields"
                 format_value = repr(value)
                 raw_value = value
-            #
+            # If the field type is `select` (an enumeration), encode the enumeration name
+            # back into its raw API value case insensitively.
             if field["type"] == "select" and field["value"] is not None:
                 if field.get("selectOptionsProviderAction", None) == "getUrls":
                     raw_value = api_schema["indexerUrls"].index(raw_value)
@@ -338,7 +364,7 @@ class Indexer(ProwlarrConfigBase):
                             f"{', '.join(repr(f['name']) for f in field['selectOptions'])}"
                             ")",
                         )
-            #
+            # Append the field to the outbound API object.
             logger.info(
                 "%s.%s[%s]: %s (created)",
                 tree,
@@ -347,7 +373,7 @@ class Indexer(ProwlarrConfigBase):
                 format_value,
             )
             fields.append({**field, "value": raw_value})
-        #
+        # Send the create request to the remote instance.
         with prowlarr_api_client(secrets=secrets) as api_client:
             prowlarr.IndexerApi(api_client).create_indexer(
                 indexer_resource=prowlarr.IndexerResource.from_dict(
@@ -372,14 +398,22 @@ class Indexer(ProwlarrConfigBase):
         indexer_name: str,
         indexer_added: datetime,
     ) -> bool:
-        #
+        # Get the API schema for this indexer type.
+        # This will ensure the fields are ordered correctly.
         api_schema = self._get_api_schema(api_indexer_schemas)
-        #
+        # Generate the remote map for encoding local attribute values.
         remote_map = self._get_base_remote_map(sync_profile_ids, tag_ids)
+        # Create a structure storing the names of all individually-defined
+        # attributes that are fields.
+        # These are used to ensure individually defined fields are retrieved
+        # from the correct structure when adding them to the outbound API object.
         remote_map_fields = set(
             (entry[1] for entry in remote_map if entry[2].get("is_field", False)),
         )
-        #
+        # Encode individually-defined attributes that are different
+        # between the local and remote configuration.
+        # Separate field attributes into a different structure, so they can
+        # be combined with the dynamic field attributes.
         changed, common_attrs = self.get_update_remote_attrs(
             tree,
             remote,
@@ -388,14 +422,15 @@ class Indexer(ProwlarrConfigBase):
         )
         common_fields: List[Dict[str, Any]] = common_attrs["fields"]
         del common_attrs["fields"]
-        #
+        # Encode all field attributes into the outbound API object.
         fields: List[Dict[str, Any]] = []
         local_value: Any
         remote_value: Any
         for field in api_schema["fields"]:
             name = field["name"]
             case_insensitive = False
-            #
+            # If the field is an individually-defined attribute, retrieve the
+            # encoded attribute value.
             if name in remote_map_fields:
                 for f in common_fields:
                     if f["name"] == name:
@@ -404,7 +439,8 @@ class Indexer(ProwlarrConfigBase):
                 else:
                     raise RuntimeError(f"Unable to find field '{name}' in remote map remote attrs")
                 continue
-            #
+            # Retrieve the local and remote dynamically generated field values
+            # from wherever they were defined (either `fields` or `secret_fields`).
             if name in self.secret_fields:
                 attr_name = "fields"
                 local_value = self.secret_fields[name]
@@ -427,7 +463,8 @@ class Indexer(ProwlarrConfigBase):
                 remote_formatted_value = remote_value
                 local_raw_value = local_value
                 remote_raw_value = remote_value
-            #
+            # If the field type is `select` (an enumeration), encode the enumeration name
+            # back into its raw API value case insensitively, for both local and remote values.
             if field["type"] == "select" and field["value"] is not None:
                 if field.get("selectOptionsProviderAction", None) == "getUrls":
                     local_raw_value = api_schema["indexerUrls"].index(local_raw_value)
@@ -456,15 +493,18 @@ class Indexer(ProwlarrConfigBase):
                             f"{', '.join(repr(f['name']) for f in field['selectOptions'])}"
                             ")",
                         )
-            #
+            # Compare the local value to the remote value for this
+            # dynamic field attribute, and set the flag for updating
+            # the remote instance if they are different.
             if case_insensitive:
                 value_changed = local_value.lower() != local_value.lower()
             else:
                 value_changed = local_value != remote_value
             if value_changed:
                 logger.info(
-                    "%s.secret_fields[%s]: %s -> %s",
+                    "%s.%s[%s]: %s -> %s",
                     tree,
+                    attr_name,
                     repr(name),
                     repr(remote_formatted_value),
                     repr(local_formatted_value),
@@ -485,9 +525,9 @@ class Indexer(ProwlarrConfigBase):
                     ),
                 )
                 raw_value = remote_raw_value
-            #
+            # Append the field to the outbound API object.
             fields.append({**field, "value": raw_value})
-        #
+        # Send the update request to the remote instance, if required.
         if changed:
             with prowlarr_api_client(secrets=secrets) as api_client:
                 prowlarr.IndexerApi(api_client).update_indexer(
@@ -585,9 +625,9 @@ class IndexersSettings(ProwlarrConfigBase):
         remote: Self,
         check_unmanaged: bool = False,
     ) -> bool:
-        #
+        # Track whether or not any changes have been made on the remote instance.
         changed = False
-        #
+        # Pull API objects and metadata required during the update operation.
         with prowlarr_api_client(secrets=secrets) as api_client:
             indexer_api = prowlarr.IndexerApi(api_client)
             api_indexer_schemas = indexer_api.list_indexer_schema()
@@ -604,10 +644,12 @@ class IndexersSettings(ProwlarrConfigBase):
                 or any(indexer.tags for indexer in remote.definitions.values())
                 else {}
             )
-        #
+        # Compare local definitions to their remote equivalent.
+        # If a local definition does not exist on the remote, create it.
+        # If it does exist on the remote, attempt an an in-place modification,
+        # and set the `changed` flag if modifications were made.
         for indexer_name, indexer in self.definitions.items():
             indexer_tree = f"{tree}.definitions[{repr(indexer_name)}]"
-            #
             if indexer_name not in remote.definitions:
                 indexer._create_remote(
                     tree=indexer_tree,
@@ -618,7 +660,6 @@ class IndexersSettings(ProwlarrConfigBase):
                     indexer_name=indexer_name,
                 )
                 changed = True
-            #
             elif indexer._update_remote(
                 tree=indexer_tree,
                 secrets=secrets,
@@ -631,7 +672,11 @@ class IndexersSettings(ProwlarrConfigBase):
                 indexer_added=indexer_api_objs[indexer_name].added,
             ):
                 changed = True
-        #
+        # Traverse the remote definitions, and see if there are any remote definitions
+        # that do not exist in the local configuration.
+        # If `delete_unmanaged` is enabled, delete it from the remote.
+        # If `delete_unmanaged` is disabled, just add a log entry acknowledging
+        # the existence of the unmanaged definition.
         for indexer_name, indexer in remote.definitions.items():
             if indexer_name not in self.definitions:
                 indexer_tree = f"{tree}.definitions[{repr(indexer_name)}]"
@@ -644,5 +689,5 @@ class IndexersSettings(ProwlarrConfigBase):
                     changed = True
                 else:
                     logger.debug("%s: (...) (unmanaged)", indexer_tree)
-        #
+        # Return whether or not the remote instance was changed.
         return changed
