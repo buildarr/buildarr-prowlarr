@@ -324,6 +324,11 @@ class Indexer(ProwlarrConfigBase):
         fields: List[Dict[str, Any]] = []
         for field in api_schema["fields"]:
             name = field["name"]
+            # Do not include 'info' type fields in the Buildarr indexer object,
+            # as they are purely informational fields, and only serve to
+            # clutter the output.
+            if field["type"] == "info":
+                continue
             # If the field is an individually-defined attribute, retrieve the
             # encoded attribute value.
             if name in remote_map_fields:
@@ -349,19 +354,39 @@ class Indexer(ProwlarrConfigBase):
                 raw_value = value
             # If the field type is `select` (an enumeration), encode the enumeration name
             # back into its raw API value case insensitively.
-            if field["type"] == "select" and field["value"] is not None:
-                if field.get("selectOptionsProviderAction", None) == "getUrls":
-                    raw_value = api_schema["indexerUrls"].index(raw_value)
+            # If the raw value is already its integer representation, then that means
+            # so is the regularly set value and format value: decode them to their
+            # string representation.
+            if field["type"] == "select" and raw_value is not None:
+                if isinstance(raw_value, str):
+                    if field.get("selectOptionsProviderAction", None) == "getUrls":
+                        raw_value = api_schema["indexerUrls"].index(raw_value)
+                    elif "selectOptions" in field:
+                        for option in field["selectOptions"]:
+                            if option["name"].lower() == raw_value.lower():
+                                raw_value = option["value"]
+                                break
+                        else:
+                            raise ValueError(
+                                f"Invalid field value '{raw_value}' "
+                                "(expected values: "
+                                f"{', '.join(repr(f['name']) for f in field['selectOptions'])}"
+                                ")",
+                            )
+                elif field.get("selectOptionsProviderAction", None) == "getUrls":
+                    value = api_schema["indexerUrls"][raw_value]
+                    format_value = repr(value)
                 elif "selectOptions" in field:
                     for option in field["selectOptions"]:
-                        if option["name"].lower() == raw_value.lower():
-                            raw_value = option["value"]
+                        if option["value"] == raw_value:
+                            value = option["name"]
+                            format_value = repr(value)
                             break
                     else:
                         raise ValueError(
-                            f"Invalid field value '{raw_value}' "
+                            f"Invalid field select option index {raw_value} "
                             "(expected values: "
-                            f"{', '.join(repr(f['name']) for f in field['selectOptions'])}"
+                            f"{', '.join(repr(f['value']) for f in field['selectOptions'])}"
                             ")",
                         )
             # Append the field to the outbound API object.
@@ -429,6 +454,11 @@ class Indexer(ProwlarrConfigBase):
         for field in api_schema["fields"]:
             name = field["name"]
             case_insensitive = False
+            # Do not include 'info' type fields in the Buildarr indexer object,
+            # as they are purely informational fields, and only serve to
+            # clutter the output.
+            if field["type"] == "info":
+                continue
             # If the field is an individually-defined attribute, retrieve the
             # encoded attribute value.
             if name in remote_map_fields:
@@ -442,25 +472,25 @@ class Indexer(ProwlarrConfigBase):
             # Retrieve the local and remote dynamically generated field values
             # from wherever they were defined (either `fields` or `secret_fields`).
             if name in self.secret_fields:
-                attr_name = "fields"
+                attr_name = "secrets_fields"
                 local_value = self.secret_fields[name]
                 try:
                     remote_value = remote.secret_fields[name]
                 except KeyError:
                     remote_value = Password(remote.fields[name])
-                local_formatted_value = str(local_value)
-                remote_formatted_value = str(remote_value)
+                local_formatted_value = repr(str(local_value))
+                remote_formatted_value = repr(str(remote_value))
                 local_raw_value = local_value.get_secret_value()
                 remote_raw_value = remote_value.get_secret_value()
             else:
-                attr_name = "secret_fields"
-                local_value = self.fields[name]
+                attr_name = "fields"
                 try:
                     remote_value = remote.secret_fields[name].get_secret_value()
                 except KeyError:
                     remote_value = remote.fields[name]
-                local_formatted_value = local_value
-                remote_formatted_value = remote_value
+                local_value = self.fields.get(name, remote_value)
+                local_formatted_value = repr(local_value)
+                remote_formatted_value = repr(remote_value)
                 local_raw_value = local_value
                 remote_raw_value = remote_value
             # If the field type is `select` (an enumeration), encode the enumeration name
@@ -497,7 +527,7 @@ class Indexer(ProwlarrConfigBase):
             # dynamic field attribute, and set the flag for updating
             # the remote instance if they are different.
             if case_insensitive:
-                value_changed = local_value.lower() != local_value.lower()
+                value_changed = local_value.lower() != remote_value.lower()
             else:
                 value_changed = local_value != remote_value
             if value_changed:
@@ -506,8 +536,8 @@ class Indexer(ProwlarrConfigBase):
                     tree,
                     attr_name,
                     repr(name),
-                    repr(remote_formatted_value),
-                    repr(local_formatted_value),
+                    remote_formatted_value,
+                    local_formatted_value,
                 )
                 raw_value = local_raw_value
                 changed = True
@@ -517,7 +547,7 @@ class Indexer(ProwlarrConfigBase):
                     tree,
                     attr_name,
                     repr(name),
-                    repr(local_formatted_value),
+                    remote_formatted_value,
                     (
                         "up to date"
                         if name in self.fields or name in self.secret_fields
