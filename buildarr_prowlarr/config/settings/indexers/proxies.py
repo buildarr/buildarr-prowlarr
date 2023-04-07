@@ -26,7 +26,7 @@ import prowlarr
 
 from buildarr.config import RemoteMapEntry
 from buildarr.types import NonEmptyStr, Port
-from pydantic import AnyHttpUrl, Field, PositiveFloat, SecretStr
+from pydantic import AnyHttpUrl, Field, PositiveInt, SecretStr
 from typing_extensions import Annotated, Self
 
 from ....api import prowlarr_api_client
@@ -190,7 +190,7 @@ class FlaresolverrProxy(Proxy):
     Host URL to connect to the Flaresolverr instance, from the Prowlarr instance's persective.
     """
 
-    request_timeout: PositiveFloat = 60  # seconds
+    request_timeout: PositiveInt = 60  # seconds
     """
     Timeout for requests sent to FlareSolverr, in seconds.
     """

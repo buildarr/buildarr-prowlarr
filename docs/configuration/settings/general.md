@@ -10,7 +10,8 @@ prowlarr:
         bind_address: "*"
         port: 9696
         url_base: null
-        instance_name: "Prowlarr (Example)"
+        use_ssl: false
+        instance_name: "Prowlarr (Buildarr Example)"
       security:
         authentication: "none"
       proxy:
@@ -18,9 +19,9 @@ prowlarr:
       logging:
         log_level: "INFO"
       analytics:
-        send_anonymous_usage_data: false
+        send_anonymous_usage_data: true
       updates:
-        branch: "develop"
+        branch: "master"
         automatic: false
         mechanism: "docker"
       backup:

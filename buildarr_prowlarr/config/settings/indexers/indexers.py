@@ -208,7 +208,7 @@ class Indexer(ProwlarrConfigBase):
             return secret_fields
         for name in set.union(set(secret_fields.keys()), set(fields.keys())):
             if name in fields and name in secret_fields:
-                raise ValueError(f"Field '{name}' defined in both 'fields' and 'secret_fields'")
+                raise ValueError(f"field '{name}' defined in both 'fields' and 'secret_fields'")
         return secret_fields
 
     def _get_api_schema(

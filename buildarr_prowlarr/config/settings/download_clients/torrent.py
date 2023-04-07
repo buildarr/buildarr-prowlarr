@@ -378,7 +378,7 @@ class DownloadstationTorrentDownloadClient(TorrentDownloadClient):
         ("password", "password", {"is_field": True}),
         (
             "category",
-            "tvCategory",
+            "category",
             {"is_field": True, "decoder": lambda v: v or None, "encoder": lambda v: v or ""},
         ),
         (

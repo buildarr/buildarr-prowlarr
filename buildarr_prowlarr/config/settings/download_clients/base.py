@@ -26,6 +26,7 @@ import prowlarr
 
 from buildarr.config import RemoteMapEntry
 from buildarr.types import NonEmptyStr
+from pydantic import PositiveInt
 from typing_extensions import Self
 
 from ....api import prowlarr_api_client
@@ -72,7 +73,7 @@ class DownloadClient(ProwlarrConfigBase):
     When `True`, this download client is active and Prowlarr is able to send requests to it.
     """
 
-    priority: int = 1
+    priority: PositiveInt = 1
     """
     Download client priority.
 

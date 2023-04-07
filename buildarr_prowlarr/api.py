@@ -51,19 +51,14 @@ def prowlarr_api_client(
     host_url: Optional[str] = None,
 ) -> Generator[ApiClient, None, None]:
     """
-    _summary_
-
-    _extended_summary_
+    Create a Prowlarr API client object, and make it available within a context.
 
     Args:
-        secrets (Optional[ProwlarrSecrets], optional): _description_. Defaults to None.
-        host_url (Optional[str], optional): _description_. Defaults to None.
-
-    Returns:
-        _type_: _description_
+        secrets (Optional[ProwlarrSecrets], optional): Instance secrets. Defaults to `None`.
+        host_url (Optional[str], optional): Host URL, if no secrets used. Defaults to `None`.
 
     Yields:
-        Generator[ApiCient, None, None]: _description_
+        Prowlarr API client object
     """
 
     configuration = Configuration(host=secrets.host_url if secrets else host_url)
@@ -111,12 +106,12 @@ def get_initialize_js(host_url: str, api_key: Optional[str] = None) -> Dict[str,
             status_code = res.status_code
             error_message = f"Unexpected response with error code {res.status_code}: {res.text}"
         raise ProwlarrAPIError(
-            f"Unable to retrieve 'initialise.js': {error_message}",
+            f"Unable to retrieve 'initialize.js': {error_message}",
             status_code=status_code,
         )
     res_match = re.match(INITIALIZE_JS_RES_PATTERN, res.text)
     if not res_match:
-        raise RuntimeError(f"No matches for initialize.js parsing: {res.text}")
+        raise RuntimeError(f"No matches for 'initialize.js' parsing: {res.text}")
     res_json = json5.loads(res_match.group(1))
     logger.debug("GET %s -> status_code=%i res=%s", url, res.status_code, repr(res_json))
     return res_json
