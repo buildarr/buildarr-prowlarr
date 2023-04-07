@@ -99,7 +99,7 @@ class Indexer(ProwlarrConfigBase):
     The type of indexer to manage. This attribute is unique to each indexer site.
     """
 
-    enable: bool = False
+    enable: bool = True
     """
     When set to `True`, the indexer is active and Prowlarr is making requests to it.
     """

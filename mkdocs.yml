@@ -33,6 +33,7 @@ nav:
       - General: "configuration/settings/general.md"
       - UI: "configuration/settings/ui.md"
   - Buildarr: "https://buildarr.github.io"
+  - GitHub: "https://github.com/buildarr/buildarr-prowlarr"
 
 watch:
   - buildarr_prowlarr

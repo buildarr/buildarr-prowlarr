@@ -17,6 +17,21 @@ some kind of event (or problem) occurs.
       show_root_heading: false
       show_source: false
 
+## Apprise
+
+##### ::: buildarr_prowlarr.config.settings.notifications.AppriseNotification
+    options:
+      members:
+        - type
+        - base_url
+        - configuration_key
+        - stateless_urls
+        - apprise_tags
+        - auth_username
+        - auth_password
+      show_root_heading: false
+      show_source: false
+
 ## Boxcar
 
 ##### ::: buildarr_prowlarr.config.settings.notifications.BoxcarNotification
@@ -94,6 +109,20 @@ some kind of event (or problem) occurs.
       show_root_heading: false
       show_source: false
 
+## Mailgun
+
+##### ::: buildarr_prowlarr.config.settings.notifications.MailgunNotification
+    options:
+      members:
+        - type
+        - api_key
+        - use_eu_endpoint
+        - from_address
+        - sender_domain
+        - recipient_addresses
+      show_root_heading: false
+      show_source: false
+
 ## Notifiarr
 
 ##### ::: buildarr_prowlarr.config.settings.notifications.NotifiarrNotification
@@ -101,6 +130,22 @@ some kind of event (or problem) occurs.
       members:
         - type
         - api_key
+      show_root_heading: false
+      show_source: false
+
+## ntfy
+
+##### ::: buildarr_prowlarr.config.settings.notifications.NtfyNotification
+    options:
+      members:
+        - type
+        - server_url
+        - username
+        - password
+        - priority
+        - topics
+        - ntfy_tags
+        - click_url
       show_root_heading: false
       show_source: false
 

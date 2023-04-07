@@ -19,6 +19,7 @@ Prowlarr plugin secrets file model.
 
 from __future__ import annotations
 
+from http import HTTPStatus
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
@@ -29,6 +30,7 @@ from buildarr.types import NonEmptyStr, Port
 from prowlarr.exceptions import UnauthorizedException
 
 from .api import get_initialize_js, prowlarr_api_client
+from .exceptions import ProwlarrAPIError, ProwlarrSecretsUnauthorizedError
 from .types import ArrApiKey, ProwlarrProtocol
 
 if TYPE_CHECKING:
@@ -77,7 +79,20 @@ class ProwlarrSecrets(_ProwlarrSecrets):
         if config.api_key:
             api_key = config.api_key
         else:
-            api_key = get_initialize_js(host_url=config.host_url)["apiKey"]
+            try:
+                api_key = get_initialize_js(host_url=config.host_url)["apiKey"]
+            except ProwlarrAPIError as err:
+                if err.status_code == HTTPStatus.UNAUTHORIZED:
+                    raise ProwlarrSecretsUnauthorizedError(
+                        "Unable to retrieve the API key for the Prowlarr instance "
+                        f"at '{config.host_url}': Authentication is enabled. "
+                        "Please try manually setting the "
+                        "'Settings -> General -> Authentication Required' attribute "
+                        "to 'Disabled for Local Addresses', or if that does not work, "
+                        "explicitly define the API key in the Buildarr configuration.",
+                    ) from None
+                else:
+                    raise
             # TODO: Switch to `prowlarr.InitializeJsApi.get_initialize_js` when fixed.
             # with prowlarr_api_client(host_url=config.host_url) as api_client:
             #     api_key = prowlarr.InitializeJsApi(api_client).get_initialize_js().api_key

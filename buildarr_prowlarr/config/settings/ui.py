@@ -89,6 +89,7 @@ class Theme(BaseEnum):
     Theme enumeration for Prowlarr.
     """
 
+    auto = "auto"
     light = "light"
     dark = "dark"
 

@@ -96,6 +96,14 @@ class JoinPriority(BaseEnum):
     emergency = 2
 
 
+class NtfyshPriority(BaseIntEnum):
+    min = 1
+    low = 2
+    default = 3
+    high = 4
+    max = 5
+
+
 class ProwlPriority(BaseEnum):
     """
     Prowl notification priority.
@@ -357,6 +365,93 @@ class Notification(ProwlarrConfigBase):
         logger.info("%s: (...) -> (deleted)", tree)
         with prowlarr_api_client(secrets=secrets) as api_client:
             prowlarr.NotificationApi(api_client).delete_notification(id=notification_id)
+
+
+class AppriseNotification(Notification):
+    """
+    Receive media update and health alert push notifications via an Apprise server.
+    """
+
+    type: Literal["apprise"] = "apprise"
+    """
+    Type value associated with this kind of connection.
+    """
+
+    base_url: AnyHttpUrl
+    """
+    Apprise server base URL, including `http[s]://` and port if needed.
+    """
+
+    configuration_key: Optional[SecretStr] = None
+    """
+    Configuration key for the Persistent Storage Solution.
+
+    Leave empty if Stateless URLs are used.
+    """
+
+    stateless_urls: Set[AnyHttpUrl] = set()
+    """
+    One or more URLs where notifications should be sent to.
+
+    Leave undefined or empty if Persistent Storage is used.
+    """
+
+    apprise_tags: Set[NonEmptyStr] = set()
+    """
+    Optionally notify only targets with the defined tags.
+    """
+
+    auth_username: Optional[str] = None
+    """
+    Username for authenticating with Apprise, if required.
+    """
+
+    auth_password: Optional[SecretStr] = None
+    """
+    Password for authenticating with Apprise, if required.
+    """
+
+    _implementation: str = "Apprise"
+    _remote_map: List[RemoteMapEntry] = [
+        ("base_url", "baseUrl", {"is_field": True}),
+        (
+            "configuration_key",
+            "configurationKey",
+            {
+                "is_field": True,
+                "decoder": lambda v: SecretStr(v) if v else None,
+                "encoder": lambda v: v.get_secret_value() if v else "",
+            },
+        ),
+        (
+            "stateless_urls",
+            "statelessUrls",
+            {
+                "is_field": True,
+                "decoder": lambda v: set(url.strip() for url in "".split(",") if url.strip()),
+                "encoder": lambda v: ",".join(sorted(str(url) for url in v)),
+            },
+        ),
+        (
+            "apprise_tags",
+            "tags",
+            {"is_field": True, "encoder": lambda v: sorted(v)},
+        ),
+        (
+            "auth_username",
+            "authUsername",
+            {"is_field": True, "decoder": lambda v: v or None, "encoder": lambda v: v or ""},
+        ),
+        (
+            "auth_password",
+            "authPassword",
+            {
+                "is_field": True,
+                "decoder": lambda v: SecretStr(v) if v else None,
+                "encoder": lambda v: v.get_secret_value() if v else "",
+            },
+        ),
+    ]
 
 
 class BoxcarNotification(Notification):
@@ -738,6 +833,56 @@ class JoinNotification(Notification):
     ]
 
 
+class MailgunNotification(Notification):
+    """
+    Send media update and health alert emails via the Mailgun delivery service.
+    """
+
+    type: Literal["mailgun"] = "mailgun"
+    """
+    Type value associated with this kind of connection.
+    """
+
+    api_key: Password
+    """
+    API key to use to authenticate with Mailgun.
+    """
+
+    use_eu_endpoint: bool = False
+    """
+    Send mail via the EU endpoint instead of the US one.
+    """
+
+    from_address: NameEmail
+    """
+    Email address to send the mail as.
+
+    RFC-5322 formatted mailbox addresses are also supported,
+    e.g. `Sonarr Notifications <sonarr@example.com>`.
+    """
+
+    sender_domain: NonEmptyStr
+    """
+    The domain from which the mail will be sent.
+    """
+
+    recipient_addresses: Annotated[List[NameEmail], Field(min_items=1, unique_items=True)]
+    """
+    The recipient email addresses of the notification mail.
+
+    At least one recipient address is required.
+    """
+
+    _implementation: str = "Mailgun"
+    _remote_map: List[RemoteMapEntry] = [
+        ("api_key", "apiKey", {"is_field": True}),
+        ("use_eu_endpoint", "useEuEndpoint", {"is_field": True}),
+        ("from_address", "from", {"is_field": True}),
+        ("sender_domain", "senderDomain", {"is_field": True}),
+        ("recipient_addresses", "recipients", {"is_field": True}),
+    ]
+
+
 class NotifiarrNotification(Notification):
     """
     Send media update and health alert emails via the Notifiarr notification service.
@@ -755,6 +900,96 @@ class NotifiarrNotification(Notification):
 
     _implementation: str = "Notifiarr"
     _remote_map: List[RemoteMapEntry] = [("api_key", "apiKey", {"is_field": True})]
+
+
+class NtfyNotification(Notification):
+    """
+    Send media update and health alert emails via the ntfy.sh notification service,
+    or a self-hosted server using the same software.
+    """
+
+    type: Literal["ntfy"] = "ntfy"
+    """
+    Type value associated with this kind of connection.
+    """
+
+    server_url: Optional[AnyHttpUrl] = None
+    """
+    Custom ntfy server URL.
+
+    Leave blank, set to `null` or undefined to use the public server (`https://ntfy.sh`).
+    """
+
+    username: Optional[str] = None
+    """
+    Username to use to authenticate, if required.
+    """
+
+    password: Optional[SecretStr] = None
+    """
+    Password to use to authenticate, if required.
+    """
+
+    priority: NtfyshPriority = NtfyshPriority.default
+    """
+    Values:
+
+    * `min`
+    * `low`
+    * `default`
+    * `high`
+    * `max`
+    """
+
+    topics: Set[NonEmptyStr] = set()
+    """
+    List of Topics to send notifications to.
+    """
+
+    ntfy_tags: Set[NonEmptyStr] = set()
+    """
+    Optional list of tags or [emojis](https://ntfy.sh/docs/emojis) to use.
+    """
+
+    click_url: Optional[AnyHttpUrl] = None
+    """
+    Optional link for when the user clicks the notification.
+    """
+
+    _implementation: str = "Ntfy"
+    _remote_map: List[RemoteMapEntry] = [
+        (
+            "server_url",
+            "serverUrl",
+            {
+                "is_field": True,
+                "decoder": lambda v: v or None,
+                "encoder": lambda v: str(v) if v else "",
+            },
+        ),
+        (
+            "username",
+            "userName",
+            {"is_field": True, "decoder": lambda v: v or None, "encoder": lambda v: v or ""},
+        ),
+        (
+            "password",
+            "password",
+            {
+                "is_field": True,
+                "decoder": lambda v: SecretStr(v) if v else None,
+                "encoder": lambda v: v.get_secret_value() if v else "",
+            },
+        ),
+        ("priority", "priority", {"is_field": True}),
+        ("topics", "topics", {"is_field": True, "encoder": sorted}),
+        ("ntfy_tags", "tags", {"is_field": True, "encoder": sorted}),
+        (
+            "click_url",
+            "clickUrl",
+            {"is_field": True, "decoder": lambda v: v or None, "encoder": lambda v: v or ""},
+        ),
+    ]
 
 
 class ProwlNotification(Notification):
@@ -1146,13 +1381,16 @@ class WebhookNotification(Notification):
 
 
 NOTIFICATION_TYPES: Tuple[Type[Notification], ...] = (
+    AppriseNotification,
     BoxcarNotification,
     CustomscriptNotification,
     DiscordNotification,
     EmailNotification,
     GotifyNotification,
     JoinNotification,
+    MailgunNotification,
     NotifiarrNotification,
+    NtfyNotification,
     ProwlNotification,
     PushbulletNotification,
     PushoverNotification,
@@ -1169,13 +1407,16 @@ NOTIFICATION_TYPE_MAP: Dict[str, Type[Notification]] = {
 }
 
 NotificationType = Union[
+    AppriseNotification,
     BoxcarNotification,
     CustomscriptNotification,
     DiscordNotification,
     EmailNotification,
     GotifyNotification,
     JoinNotification,
+    MailgunNotification,
     NotifiarrNotification,
+    NtfyNotification,
     ProwlNotification,
     PushbulletNotification,
     PushoverNotification,

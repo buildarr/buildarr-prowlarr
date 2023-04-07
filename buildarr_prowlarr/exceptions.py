@@ -19,12 +19,7 @@ Prowlarr plugin exception classes.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from buildarr.exceptions import BuildarrError
-
-if TYPE_CHECKING:
-    from requests import Response
 
 
 class ProwlarrError(BuildarrError):
@@ -40,6 +35,22 @@ class ProwlarrAPIError(ProwlarrError):
     Prowlarr API exception class.
     """
 
-    def __init__(self, msg: str, response: Response) -> None:
-        self.response = response
+    def __init__(self, msg: str, status_code: int) -> None:
+        self.status_code = status_code
         super().__init__(msg)
+
+
+class ProwlarrSecretsError(ProwlarrError):
+    """
+    Prowlarr plugin secrets exception base class.
+    """
+
+    pass
+
+
+class ProwlarrSecretsUnauthorizedError(ProwlarrSecretsError):
+    """
+    Error raised when the Prowlarr API key wasn't able to be retrieved.
+    """
+
+    pass

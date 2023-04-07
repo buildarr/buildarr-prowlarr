@@ -26,7 +26,7 @@ import prowlarr
 
 from buildarr.config import RemoteMapEntry
 from buildarr.types import BaseEnum, NonEmptyStr, Password, Port
-from pydantic import Field, validator
+from pydantic import Field, SecretStr, validator
 from typing_extensions import Self
 
 from ...api import prowlarr_api_client
@@ -42,6 +42,15 @@ class AuthenticationMethod(BaseEnum):
     none = "none"
     basic = "basic"
     form = "forms"
+
+
+class AuthenticationRequired(BaseEnum):
+    """
+    Authentication requirement settings.
+    """
+
+    enabled = "enabled"
+    local_disabled = "disabledForLocalAddresses"
 
 
 class CertificateValidation(BaseEnum):
@@ -159,8 +168,20 @@ class HostGeneralSettings(GeneralSettings):
     """
     Enable the encrypted (HTTPS) listening port in Prowlarr.
 
-    As Prowlarr only supports self-signed certificates, it is recommended
+    Instead of enabling HTTPS directly on Prowlarr, it is recommended
     to put Prowlarr behind a HTTPS-terminating reverse proxy such as Nginx, Caddy or Traefik.
+    """
+
+    ssl_cert_path: Optional[str] = None
+    """
+    Path to the TLS certificate file, in PFX format.
+
+    Required if encryption (HTTPS) is enabled.
+    """
+
+    ssl_cert_password: Optional[SecretStr] = None
+    """
+    Password to unlock the TLS certificate file, if required.
     """
 
     url_base: Optional[str] = None
@@ -182,6 +203,19 @@ class HostGeneralSettings(GeneralSettings):
         ("port", "port", {}),
         ("ssl_port", "sslPort", {}),
         ("use_ssl", "enableSsl", {}),
+        (
+            "ssl_cert_path",
+            "sslCertPath",
+            {"decoder": lambda v: v or None, "encoder": lambda v: v or ""},
+        ),
+        (
+            "ssl_cert_password",
+            "sslCertPassword",
+            {
+                "decoder": lambda v: SecretStr(v) if v else None,
+                "encoder": lambda v: v.get_secret_value() if v else "",
+            },
+        ),
         ("url_base", "urlBase", {"decoder": lambda v: v or None, "encoder": lambda v: v or ""}),
         ("instance_name", "instanceName", {}),
     ]
@@ -204,6 +238,16 @@ class SecurityGeneralSettings(GeneralSettings):
     * `form` - Authentication using a login page
 
     Requires a restart of Prowlarr to take effect.
+    """
+
+    authentication_required: AuthenticationRequired = AuthenticationRequired.enabled
+    """
+    Authentication requirement settings for accessing Prowlarr.
+
+    Values:
+
+    * `enabled` - Enabled
+    * `local-disabled` - Disabled for Local Addresses
     """
 
     username: Optional[str] = None
@@ -234,6 +278,7 @@ class SecurityGeneralSettings(GeneralSettings):
 
     _remote_map: List[RemoteMapEntry] = [
         ("authentication", "authenticationMethod", {}),
+        ("authentication_required", "authenticationRequired", {}),
         (
             "username",
             "username",
@@ -607,23 +652,21 @@ class ProwlarrGeneralSettings(ProwlarrConfigBase):
         ):
             with prowlarr_api_client(secrets=secrets) as api_client:
                 host_config_api = prowlarr.HostConfigApi(api_client)
-                remote_attrs = host_config_api.get_host_config().dict()
+                remote_attrs = {
+                    # There are some undocumented values that are not
+                    # set by Buildarr. Pass those through unmodified.
+                    **host_config_api.get_host_config().to_dict(),
+                    **host_attrs,
+                    **security_attrs,
+                    **proxy_attrs,
+                    **logging_attrs,
+                    **analytics_attrs,
+                    **updates_attrs,
+                    **backup_attrs,
+                }
                 host_config_api.update_host_config(
                     id=str(remote_attrs["id"]),
-                    host_config_resource=prowlarr.HostConfigResource.from_dict(
-                        {
-                            # There are some undocumented values that are not
-                            # set by Buildarr. Pass those through unmodified.
-                            **remote_attrs,
-                            **host_attrs,
-                            **security_attrs,
-                            **proxy_attrs,
-                            **logging_attrs,
-                            **analytics_attrs,
-                            **updates_attrs,
-                            **backup_attrs,
-                        },
-                    ),
+                    host_config_resource=prowlarr.HostConfigResource.from_dict(remote_attrs),
                 )
             return True
         return False

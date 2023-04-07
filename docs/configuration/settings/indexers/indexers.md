@@ -10,7 +10,7 @@
 
 ## Adding indexers to Buildarr
 
-Due to the sheer number of possible indexer types in Prowlarr (574 at the time of writing),
+Due to the sheer number of possible indexer types in Prowlarr (583 at the time of writing),
 indexers are expressed differently in Buildarr compared to other resource types.
 
 Indexer configurations are partly composed of individually defined configuration attributes

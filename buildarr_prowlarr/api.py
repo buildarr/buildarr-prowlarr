@@ -23,6 +23,7 @@ import logging
 import re
 
 from contextlib import contextmanager
+from http import HTTPStatus
 from typing import TYPE_CHECKING, cast
 
 import json5
@@ -30,6 +31,8 @@ import requests
 
 from buildarr.state import state
 from prowlarr import ApiClient, Configuration
+
+from .exceptions import ProwlarrAPIError
 
 if TYPE_CHECKING:
     from typing import Any, Dict, Generator, Optional
@@ -97,7 +100,20 @@ def get_initialize_js(host_url: str, api_key: Optional[str] = None) -> Dict[str,
         url,
         headers={"X-Api-Key": api_key} if api_key else None,
         timeout=state.config.buildarr.request_timeout,
+        allow_redirects=False,
     )
+    if res.status_code != HTTPStatus.OK:
+        logger.debug("GET %s -> status_code=%i res=%s", url, res.status_code, res.text)
+        if res.status_code in (HTTPStatus.UNAUTHORIZED, HTTPStatus.FOUND):
+            status_code: int = HTTPStatus.UNAUTHORIZED
+            error_message = "Unauthorized"
+        else:
+            status_code = res.status_code
+            error_message = f"Unexpected response with error code {res.status_code}: {res.text}"
+        raise ProwlarrAPIError(
+            f"Unable to retrieve 'initialise.js': {error_message}",
+            status_code=status_code,
+        )
     res_match = re.match(INITIALIZE_JS_RES_PATTERN, res.text)
     if not res_match:
         raise RuntimeError(f"No matches for initialize.js parsing: {res.text}")
