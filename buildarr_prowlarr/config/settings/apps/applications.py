@@ -22,7 +22,7 @@ from __future__ import annotations
 import itertools
 
 from logging import getLogger
-from typing import Any, Dict, List, Literal, Mapping, Optional, Set, Tuple, Type, Union
+from typing import Any, Dict, Iterable, List, Literal, Mapping, Optional, Set, Tuple, Type, Union
 
 import prowlarr
 
@@ -115,15 +115,9 @@ class Application(ProwlarrConfigBase):
                 "sync_categories",
                 "syncCategories",
                 {
-                    "decoder": lambda v: set(
-                        (
-                            category
-                            for category, category_id in category_ids.items()
-                            if category_id in v
-                        ),
-                    ),
-                    "encoder": lambda v: sorted(category_ids[category] for category in v),
                     "is_field": True,
+                    "decoder": lambda v: cls._sync_categories_decoder(category_ids, v),
+                    "encoder": lambda v: cls._sync_categories_encoder(category_ids, v),
                 },
             ),
             (
@@ -137,6 +131,25 @@ class Application(ProwlarrConfigBase):
                 },
             ),
         ]
+
+
+    @classmethod
+    def _sync_categories_decoder(
+        cls,
+        category_ids: Mapping[str, int],
+        api_sync_categories: Iterable[int],
+    ) -> Set[str]:
+        category_names = {value: key.lower() for key, value in category_ids.items()}
+        return set(category_names[category_id] for category_id in api_sync_categories)
+
+    @classmethod
+    def _sync_categories_encoder(
+        cls,
+        category_ids: Mapping[str, int],
+        sync_categories: Set[str],
+    ) -> List[int]:
+        category_ids = {key.lower(): value for key, value in category_ids.items()}
+        return sorted(category_ids[category_name.lower()] for category_name in sync_categories)
 
     @classmethod
     def _from_remote(
@@ -163,6 +176,9 @@ class Application(ProwlarrConfigBase):
             if k not in ["id", "name"]
         }
 
+    def _resolve(self) -> Self:
+        return self
+
     def _create_remote(
         self,
         tree: str,
@@ -187,7 +203,7 @@ class Application(ProwlarrConfigBase):
         remote_attrs = {"name": application_name, **schema, **set_attrs}
         with prowlarr_api_client(secrets=secrets) as api_client:
             prowlarr.ApplicationApi(api_client).create_applications(
-                notification_resource=prowlarr.ApplicationResource.from_dict(remote_attrs),
+                application_resource=prowlarr.ApplicationResource.from_dict(remote_attrs),
             )
 
     def _update_remote(
@@ -224,7 +240,7 @@ class Application(ProwlarrConfigBase):
                 remote_attrs = {**api_application.to_dict(), **updated_attrs}
                 application_api.update_applications(
                     id=str(api_application.id),
-                    notification_resource=prowlarr.ApplicationResource.from_dict(remote_attrs),
+                    application_resource=prowlarr.ApplicationResource.from_dict(remote_attrs),
                 )
             return True
         return False
@@ -233,6 +249,11 @@ class Application(ProwlarrConfigBase):
         logger.info("%s: (...) -> (deleted)", tree)
         with prowlarr_api_client(secrets=secrets) as api_client:
             prowlarr.ApplicationApi(api_client).delete_applications(id=application_id)
+
+    class Config(ProwlarrConfigBase.Config):
+        # Ensure in-place assignments of attributes are always validated,
+        # since this class performs such modifications in certain cases.
+        validate_assignment = True
 
 
 class LazylibrarianApplication(Application):
@@ -431,12 +452,12 @@ class SonarrApplication(Application):
     """
 
     @validator("api_key")
-    def validate_api_key(cls, value: Optional[SecretStr], values: Dict[str, Any]) -> SecretStr:
-        if "instance_name" in values and values["instance_name"]:
-            return state.secrets.sonarr[  # type: ignore[attr-defined]
-                values["instance_name"]
-            ].api_key
-        elif not value:
+    def validate_api_key(
+        cls,
+        value: Optional[SecretStr],
+        values: Dict[str, Any],
+    ) -> Optional[SecretStr]:
+        if not values.get("instance_name", None) and not value:
             raise ValueError("required when 'instance_name' is not defined")
         return value
 
@@ -453,18 +474,21 @@ class SonarrApplication(Application):
                 "anime_sync_categories",
                 "animeSyncCategories",
                 {
-                    "decoder": lambda v: set(
-                        (
-                            category
-                            for category, category_id in category_ids.items()
-                            if category_id in v
-                        ),
-                    ),
-                    "encoder": lambda v: sorted(category_ids[category] for category in v),
                     "is_field": True,
+                    "decoder": lambda v: cls._sync_categories_decoder(category_ids, v),
+                    "encoder": lambda v: cls._sync_categories_encoder(category_ids, v),
                 },
             ),
         ]
+
+    def _resolve(self) -> Self:
+        if self.instance_name:
+            resolved = self.copy(deep=True)
+            resolved.api_key = state.secrets.sonarr[  # type: ignore[attr-defined]
+                self.instance_name
+            ].api_key.get_secret_value()
+            return resolved
+        return self
 
 
 class WhisparrApplication(Application):
@@ -675,8 +699,9 @@ class ApplicationsSettings(ProwlarrConfigBase):
         # and set the `changed` flag if modifications were made.
         for application_name, application in self.definitions.items():
             application_tree = f"{tree}.definitions[{repr(application_name)}]"
+            local_application = application._resolve()
             if application_name not in remote.definitions:
-                application._create_remote(
+                local_application._create_remote(
                     tree=application_tree,
                     secrets=secrets,
                     application_schemas=application_schemas,
@@ -685,7 +710,7 @@ class ApplicationsSettings(ProwlarrConfigBase):
                     application_name=application_name,
                 )
                 changed = True
-            elif application._update_remote(
+            elif local_application._update_remote(
                 tree=application_tree,
                 secrets=secrets,
                 remote=remote.definitions[application_name],  # type: ignore[arg-type]

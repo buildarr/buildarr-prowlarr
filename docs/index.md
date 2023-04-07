@@ -6,6 +6,8 @@ The Buildarr Prowlarr plugin (`buildarr-prowlarr`) is a plugin for Buildarr that
 
 Prowlarr is a manager/proxy for *Arr application Usenet and Torrent indexers. It handles communication with individual indexers for multiple instances on their behalf from a single client, allowing easier configuration of indexers by only setting them up once, and better management of traffic going to indexers to reduce the risk of running into rate limits.
 
+Prowlarr v1.0 and later are the only supported versions at this time. If you are using Prowlarr v0.4 or earlier, please upgrade in order to configure your instances with Buildarr.
+
 ## Installation
 
 When using Buildarr as a [standalone application](https://buildarr.github.io/installation/#standalone-application), the Prowlarr plugin can simply be installed using `pip`:
@@ -32,7 +34,9 @@ You can upgrade, or pin the version of the plugin to a specific version, within 
 
 To use the Prowlarr plugin, create a `prowlarr` block within `buildarr.yml`, and enter the connection information required for the Buildarr instance to connect to the Prowlarr instance you'd like to manage.
 
-Buildarr won't modify anything yet since no configuration has been defined, but you are able to test if Buildarr is able to connect to and authenticate with the Prowlarr instance.
+From version 1.0 onwards, Prowlarr enables authentication by default, preventing Buildarr from automatically retrieving the API key.
+
+If authentication is enabled on your Prowlarr configuration, manually retrieve the API key for Prowlarr by copying it from Settings -> General -> Security -> API Key, and pasting it into the configuration file as shown below.
 
 ```yaml
 ---
@@ -44,10 +48,12 @@ prowlarr:
   hostname: "localhost" # Defaults to `prowlarr`, or the instance name for instance-specific configs.
   port: 9696 # Defaults to 9696.
   protocol: "http" # Defaults to `http`.
-  api_key: "..." # Optional. If undefined, auto-fetch (authentication must be disabled).
+  api_key: "..." # Required if authentication is enabled. Auto-fetch if authentication is disabled.
 ```
 
-Now try a `buildarr run`. If the output is similar to the below output, Buildarr was able to connect to your Prowlarr instance.
+Buildarr won't modify anything yet since no configuration has been defined, but you are able to test if Buildarr is able to connect to and authenticate with the Prowlarr instance.
+
+Try a `buildarr run`. If the output is similar to the below output, Buildarr was able to connect to your Prowlarr instance.
 
 ```text
 2023-03-29 20:39:50,856 buildarr:1 buildarr.cli.run [INFO] Buildarr version 0.4.0 (log level: INFO)
@@ -112,46 +118,30 @@ All possible values are explicitly defined in this dumped configuration.
 api_key: 1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d
 hostname: localhost
 image: lscr.io/linuxserver/prowlarr
-port: 9696
+port: 9697
 protocol: http
 settings:
   apps:
     applications:
       definitions:
-        Radarr (4K):
+        Sonarr:
+          anime_sync_categories:
+          - tv/anime
           api_key: 1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d
-          base_url: http://radarr-4k:7878
+          base_url: http://sonarr:8989
+          instance_name: null
           prowlarr_url: http://prowlarr:9696
           sync_categories:
-          - movies/uhd
-          - movies/web-dl
-          - movies/dvd
-          - movies/hd
-          - movies/other
-          - movies/sd
-          - movies/foreign
-          - movies/3d
-          - movies/bluray
+          - tv/uhd
+          - tv/other
+          - tv/foreign
+          - tv/sd
+          - tv/web-dl
+          - tv/hd
           sync_level: add-and-remove-only
-          tags: []
-          type: radarr
-        Radarr (HD):
-          api_key: 1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d
-          base_url: http://radarr-hd:7878
-          prowlarr_url: http://prowlarr:9696
-          sync_categories:
-          - movies/uhd
-          - movies/web-dl
-          - movies/dvd
-          - movies/hd
-          - movies/other
-          - movies/sd
-          - movies/foreign
-          - movies/3d
-          - movies/bluray
-          sync_level: add-and-remove-only
-          tags: []
-          type: radarr
+          tags:
+          - test
+          type: sonarr
       delete_unmanaged: false
     sync_profiles:
       definitions:
@@ -162,22 +152,7 @@ settings:
           minimum_seeders: 1
       delete_unmanaged: false
   download_clients:
-    definitions:
-      Transmission:
-        add_paused: false
-        category: null
-        client_priority: last
-        directory: null
-        enable: true
-        host: transmission
-        password: null
-        port: 9091
-        priority: 1
-        tags: []
-        type: transmission
-        url_base: /transmission/
-        use_ssl: false
-        username: null
+    definitions: {}
     delete_unmanaged: false
   general:
     analytics:
@@ -190,6 +165,8 @@ settings:
       bind_address: '*'
       instance_name: Prowlarr (Buildarr Example)
       port: 9696
+      ssl_cert_password: null
+      ssl_cert_path: null
       ssl_port: 6969
       url_base: null
       use_ssl: false
@@ -205,13 +182,14 @@ settings:
       proxy_type: http
       username: null
     security:
-      authentication: none
+      authentication: form
+      authentication_required: local-disabled
       certificate_validation: enabled
-      password: null
-      username: null
+      password: mXkaCgbcm6LMVwSmj/aucXfRtYg18k7H+I4/6JPinSA=
+      username: callum
     updates:
       automatic: false
-      branch: develop
+      branch: master
       mechanism: docker
       script_path: null
   indexers:
@@ -225,12 +203,14 @@ settings:
             downloadlink: iTorrents.org
             downloadlink2: magnet
             sort: created
+            torrentBaseSettings.appMinimumSeeders: null
+            torrentBaseSettings.packSeedTime: null
             torrentBaseSettings.seedRatio: null
             torrentBaseSettings.seedTime: null
             type: desc
-          grab_limit: null
-          indexer_priority: 1
-          query_limit: null
+          grab_limit: 4
+          priority: 25
+          query_limit: 4
           redirect: false
           secret_fields: {}
           sync_profile: Standard
@@ -245,44 +225,39 @@ settings:
             filter-id: No filter
             prefer_magnet_links: true
             sort: created
+            torrentBaseSettings.appMinimumSeeders: null
+            torrentBaseSettings.packSeedTime: null
             torrentBaseSettings.seedRatio: null
             torrentBaseSettings.seedTime: null
             type: desc
-          grab_limit: 5
-          indexer_priority: 2
-          query_limit: 5
+          grab_limit: 4
+          priority: 25
+          query_limit: 4
           redirect: false
           secret_fields: {}
           sync_profile: Standard
-          tags:
-          - anime
+          tags: []
           type: nyaasi
       delete_unmanaged: false
     proxies:
-      definitions:
-        FlareSolverr:
-          host_url: http://flaresolverr:8191/
-          request_timeout: 60.0
-          tags:
-          - anime
-          type: flaresolverr
+      definitions: {}
       delete_unmanaged: false
   notifications:
     definitions: {}
     delete_unmanaged: false
   tags:
     definitions:
-    - anime
+    - test
     delete_unused: false
   ui:
     enable_color_impaired_mode: false
     first_day_of_week: sunday
-    long_date_format: day-first
+    long_date_format: month-first
     short_date_format: word-month-first
     show_relative_dates: true
     theme: light
     time_format: twelve-hour
     ui_language: en
     week_column_header: month-first
-version: 0.4.9.2083
+version: 1.2.2.2699
 ```
