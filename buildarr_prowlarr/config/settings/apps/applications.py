@@ -132,7 +132,6 @@ class Application(ProwlarrConfigBase):
             ),
         ]
 
-
     @classmethod
     def _sync_categories_decoder(
         cls,
