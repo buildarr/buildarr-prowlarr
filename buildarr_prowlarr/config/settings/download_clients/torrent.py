@@ -536,7 +536,7 @@ class FreeboxDownloadClient(TorrentDownloadClient):
 
     api_url: NonEmptyStr = "/api/v1"  # type: ignore[assignment]
     """
-    Define Freebox API base URL with API version, e.g. `http://<host>:<port>/<api_url>]/`.
+    Define Freebox API base URL with API version, e.g. `http[s]://<host>:<port>/<api_url>/`.
     """
 
     app_id: NonEmptyStr

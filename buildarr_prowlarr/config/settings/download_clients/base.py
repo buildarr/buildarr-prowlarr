@@ -119,7 +119,7 @@ class DownloadClient(ProwlarrConfigBase):
         api_category_mappings: List[Dict[str, Any]],
     ) -> Dict[str, Set[str]]:
         category_mappings: Dict[str, Set[str]] = {}
-        category_names = {value: key for key, value in category_ids.items()}
+        category_names = {value: key.lower() for key, value in category_ids.items()}
         for api_category_mapping in api_category_mappings:
             category_mappings[api_category_mapping["clientCategory"]] = set(
                 category_names[category_id] for category_id in api_category_mapping["categories"]
@@ -133,6 +133,7 @@ class DownloadClient(ProwlarrConfigBase):
         category_mappings: Mapping[str, Set[str]],
     ) -> List[Dict[str, Any]]:
         api_category_mappings: List[Dict[str, Any]] = []
+        category_ids = {key.lower(): value for key, value in category_ids.items()}
         for client_category, categories in category_mappings.items():
             api_category_mappings.append(
                 {
