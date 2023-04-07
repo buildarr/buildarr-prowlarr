@@ -219,7 +219,9 @@ class Indexer(ProwlarrConfigBase):
             k: v
             for k, v in (
                 next(
-                    (s for s in api_indexer_schemas if s.definition_name == self.type),
+                    api_schema
+                    for api_schema in api_indexer_schemas
+                    if api_schema.definition_name.lower() == self.type.lower()
                 )
                 .to_dict()
                 .items()

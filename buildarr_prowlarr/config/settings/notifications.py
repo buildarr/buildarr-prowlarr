@@ -270,7 +270,9 @@ class Notification(ProwlarrConfigBase):
     def _get_api_schema(self, schemas: List[prowlarr.NotificationResource]) -> Dict[str, Any]:
         return {
             k: v
-            for k, v in next(s for s in schemas if s.implementation.lower() == self._implementation)
+            for k, v in next(
+                s for s in schemas if s.implementation.lower() == self._implementation.lower()
+            )
             .to_dict()
             .items()
             if k not in ["id", "name"]

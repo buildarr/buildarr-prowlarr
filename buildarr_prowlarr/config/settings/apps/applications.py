@@ -650,7 +650,7 @@ class ApplicationsSettings(ProwlarrConfigBase):
         return cls(
             definitions={
                 api_application.name: APPLICATION_TYPE_MAP[
-                    api_application.implementation_name.lower()
+                    api_application.implementation.lower()
                 ]._from_remote(
                     category_ids=category_ids,
                     tag_ids=tag_ids,

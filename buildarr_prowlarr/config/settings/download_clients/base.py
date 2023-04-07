@@ -163,7 +163,7 @@ class DownloadClient(ProwlarrConfigBase):
         return {
             k: v
             for k, v in next(
-                s for s in schemas if s.implementation_name.lower() == self._implementation.lower()
+                s for s in schemas if s.implementation.lower() == self._implementation.lower()
             )
             .to_dict()
             .items()
