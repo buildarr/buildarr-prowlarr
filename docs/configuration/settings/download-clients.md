@@ -54,6 +54,7 @@ These download clients retrieve media using the [Usenet](https://en.wikipedia.or
         - category
         - client_priority
         - add_paused
+        - category_mappings
       show_root_heading: false
       show_source: false
 
@@ -70,6 +71,7 @@ These download clients retrieve media using the [Usenet](https://en.wikipedia.or
         - api_key
         - category
         - client_priority
+        - category_mappings
       show_root_heading: false
       show_source: false
 
@@ -96,6 +98,7 @@ These download clients retrieve media using the [Usenet](https://en.wikipedia.or
         - api_key
         - category
         - client_priority
+        - category_mappings
       show_root_heading: false
       show_source: false
 
@@ -141,6 +144,7 @@ peer-to-peer file sharing protocol to retrieve media files.
         - password
         - category
         - client_priority
+        - category_mappings
       show_root_heading: false
       show_source: false
 
@@ -176,6 +180,27 @@ peer-to-peer file sharing protocol to retrieve media files.
         - flood_tags
         - additional_tags
         - add_paused
+        - category_mappings
+      show_root_heading: false
+      show_source: false
+
+## Freebox
+
+##### ::: buildarr_prowlarr.config.settings.download_clients.torrent.FreeboxDownloadClient
+    options:
+      members:
+        - type
+        - host
+        - port
+        - use_ssl
+        - api_url
+        - app_id
+        - app_token
+        - destination_directory
+        - category
+        - priority
+        - add_paused
+        - category_mappings
       show_root_heading: false
       show_source: false
 
@@ -192,6 +217,7 @@ peer-to-peer file sharing protocol to retrieve media files.
         - username
         - password
         - category
+        - category_mappings
       show_root_heading: false
       show_source: false
 
@@ -212,6 +238,7 @@ peer-to-peer file sharing protocol to retrieve media files.
         - initial_state
         - sequential_order
         - first_and_last_first
+        - category_mappings
       show_root_heading: false
       show_source: false
 
@@ -230,6 +257,7 @@ peer-to-peer file sharing protocol to retrieve media files.
         - category
         - client_priority
         - add_stopped
+        - category_mappings
       show_root_heading: false
       show_source: false
 
@@ -285,5 +313,6 @@ To use Vuze, set the `type` attribute in the download client to `vuze`.
         - category
         - client_priority
         - initial_state
+        - category_mappings
       show_root_heading: false
       show_source: false

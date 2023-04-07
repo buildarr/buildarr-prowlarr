@@ -20,12 +20,13 @@ Prowlarr plugin Usenet download client definitions.
 from __future__ import annotations
 
 from logging import getLogger
-from typing import List, Literal, Optional
+from typing import Dict, List, Literal, Mapping, Optional, Set
 
 from buildarr.config import RemoteMapEntry
 from buildarr.types import BaseEnum, NonEmptyStr, Password, Port
 from pydantic import SecretStr
 
+from ....types import LowerCaseNonEmptyStr
 from .base import DownloadClient
 
 logger = getLogger(__name__)
@@ -239,26 +240,48 @@ class NzbgetDownloadClient(UsenetDownloadClient):
     This option requires NZBGet version 16.0 or later.
     """
 
+    category_mappings: Dict[NonEmptyStr, Set[LowerCaseNonEmptyStr]] = {}
+    """
+    Category mappings for associating a category on the download client
+    with the selected Prowlarr categories.
+    """
+
     _implementation: str = "Nzbget"
-    _remote_map: List[RemoteMapEntry] = [
-        ("host", "host", {"is_field": True}),
-        ("port", "port", {"is_field": True}),
-        ("use_ssl", "useSsl", {"is_field": True}),
-        (
-            "url_base",
-            "urlBase",
-            {"is_field": True, "decoder": lambda v: v or None, "encoder": lambda v: v or ""},
-        ),
-        ("username", "username", {"is_field": True}),
-        ("password", "password", {"is_field": True}),
-        (
-            "category",
-            "category",
-            {"is_field": True, "decoder": lambda v: v or None, "encoder": lambda v: v or ""},
-        ),
-        ("client_priority", "priority", {"is_field": True}),
-        ("add_paused", "addPaused", {"is_field": True}),
-    ]
+
+    @classmethod
+    def _get_base_remote_map(
+        cls,
+        category_ids: Mapping[str, int],
+        tag_ids: Mapping[str, int],
+    ) -> List[RemoteMapEntry]:
+        return [
+            *super()._get_base_remote_map(category_ids, tag_ids),
+            ("host", "host", {"is_field": True}),
+            ("port", "port", {"is_field": True}),
+            ("use_ssl", "useSsl", {"is_field": True}),
+            (
+                "url_base",
+                "urlBase",
+                {"is_field": True, "decoder": lambda v: v or None, "encoder": lambda v: v or ""},
+            ),
+            ("username", "username", {"is_field": True}),
+            ("password", "password", {"is_field": True}),
+            (
+                "category",
+                "category",
+                {"is_field": True, "decoder": lambda v: v or None, "encoder": lambda v: v or ""},
+            ),
+            ("client_priority", "priority", {"is_field": True}),
+            ("add_paused", "addPaused", {"is_field": True}),
+            (
+                "category_mappings",
+                "categories",
+                {
+                    "decoder": lambda v: cls._category_mappings_decoder(category_ids, v),
+                    "encoder": lambda v: cls._category_mappings_encoder(category_ids, v),
+                },
+            ),
+        ]
 
 
 class NzbvortexDownloadClient(UsenetDownloadClient):
@@ -310,23 +333,45 @@ class NzbvortexDownloadClient(UsenetDownloadClient):
     * `high`
     """
 
+    category_mappings: Dict[NonEmptyStr, Set[LowerCaseNonEmptyStr]] = {}
+    """
+    Category mappings for associating a category on the download client
+    with the selected Prowlarr categories.
+    """
+
     _implementation: str = "NzbVortex"
-    _remote_map: List[RemoteMapEntry] = [
-        ("host", "host", {"is_field": True}),
-        ("port", "port", {"is_field": True}),
-        (
-            "url_base",
-            "urlBase",
-            {"is_field": True, "decoder": lambda v: v or None, "encoder": lambda v: v or ""},
-        ),
-        ("api_key", "apiKey", {"is_field": True}),
-        (
-            "category",
-            "category",
-            {"is_field": True, "decoder": lambda v: v or None, "encoder": lambda v: v or ""},
-        ),
-        ("client_priority", "priority", {"is_field": True}),
-    ]
+
+    @classmethod
+    def _get_base_remote_map(
+        cls,
+        category_ids: Mapping[str, int],
+        tag_ids: Mapping[str, int],
+    ) -> List[RemoteMapEntry]:
+        return [
+            *super()._get_base_remote_map(category_ids, tag_ids),
+            ("host", "host", {"is_field": True}),
+            ("port", "port", {"is_field": True}),
+            (
+                "url_base",
+                "urlBase",
+                {"is_field": True, "decoder": lambda v: v or None, "encoder": lambda v: v or ""},
+            ),
+            ("api_key", "apiKey", {"is_field": True}),
+            (
+                "category",
+                "category",
+                {"is_field": True, "decoder": lambda v: v or None, "encoder": lambda v: v or ""},
+            ),
+            ("client_priority", "priority", {"is_field": True}),
+            (
+                "category_mappings",
+                "categories",
+                {
+                    "decoder": lambda v: cls._category_mappings_decoder(category_ids, v),
+                    "encoder": lambda v: cls._category_mappings_encoder(category_ids, v),
+                },
+            ),
+        ]
 
 
 class PneumaticDownloadClient(UsenetDownloadClient):
@@ -425,46 +470,68 @@ class SabnzbdDownloadClient(UsenetDownloadClient):
     * `force`
     """
 
+    category_mappings: Dict[NonEmptyStr, Set[LowerCaseNonEmptyStr]] = {}
+    """
+    Category mappings for associating a category on the download client
+    with the selected Prowlarr categories.
+    """
+
     _implementation: str = "Sabnzbd"
-    _remote_map: List[RemoteMapEntry] = [
-        ("host", "host", {"is_field": True}),
-        ("port", "port", {"is_field": True}),
-        ("use_ssl", "useSsl", {"is_field": True}),
-        (
-            "url_base",
-            "urlBase",
-            {"is_field": True, "decoder": lambda v: v or None, "encoder": lambda v: v or ""},
-        ),
-        (
-            "api_key",
-            "apiKey",
-            {
-                "is_field": True,
-                "decoder": lambda v: v or None,
-                "encoder": lambda v: v.get_secret_value() if v else "",
-            },
-        ),
-        (
-            "username",
-            "username",
-            {"is_field": True, "decoder": lambda v: v or None, "encoder": lambda v: v or ""},
-        ),
-        (
-            "password",
-            "password",
-            {
-                "is_field": True,
-                "decoder": lambda v: v or None,
-                "encoder": lambda v: v.get_secret_value() if v else "",
-            },
-        ),
-        (
-            "category",
-            "category",
-            {"is_field": True, "decoder": lambda v: v or None, "encoder": lambda v: v or ""},
-        ),
-        ("client_priority", "priority", {"is_field": True}),
-    ]
+
+    @classmethod
+    def _get_base_remote_map(
+        cls,
+        category_ids: Mapping[str, int],
+        tag_ids: Mapping[str, int],
+    ) -> List[RemoteMapEntry]:
+        return [
+            *super()._get_base_remote_map(category_ids, tag_ids),
+            ("host", "host", {"is_field": True}),
+            ("port", "port", {"is_field": True}),
+            ("use_ssl", "useSsl", {"is_field": True}),
+            (
+                "url_base",
+                "urlBase",
+                {"is_field": True, "decoder": lambda v: v or None, "encoder": lambda v: v or ""},
+            ),
+            (
+                "api_key",
+                "apiKey",
+                {
+                    "is_field": True,
+                    "decoder": lambda v: v or None,
+                    "encoder": lambda v: v.get_secret_value() if v else "",
+                },
+            ),
+            (
+                "username",
+                "username",
+                {"is_field": True, "decoder": lambda v: v or None, "encoder": lambda v: v or ""},
+            ),
+            (
+                "password",
+                "password",
+                {
+                    "is_field": True,
+                    "decoder": lambda v: v or None,
+                    "encoder": lambda v: v.get_secret_value() if v else "",
+                },
+            ),
+            (
+                "category",
+                "category",
+                {"is_field": True, "decoder": lambda v: v or None, "encoder": lambda v: v or ""},
+            ),
+            ("client_priority", "priority", {"is_field": True}),
+            (
+                "category_mappings",
+                "categories",
+                {
+                    "decoder": lambda v: cls._category_mappings_decoder(category_ids, v),
+                    "encoder": lambda v: cls._category_mappings_encoder(category_ids, v),
+                },
+            ),
+        ]
 
 
 class UsenetBlackholeDownloadClient(UsenetDownloadClient):

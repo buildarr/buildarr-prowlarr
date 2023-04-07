@@ -89,10 +89,14 @@ class DownloadClient(ProwlarrConfigBase):
     """
 
     _implementation: str
-    _remote_map: List[RemoteMapEntry]
+    _remote_map: List[RemoteMapEntry] = []
 
     @classmethod
-    def _get_base_remote_map(cls, tag_ids: Mapping[str, int]) -> List[RemoteMapEntry]:
+    def _get_base_remote_map(
+        cls,
+        category_ids: Mapping[str, int],
+        tag_ids: Mapping[str, int],
+    ) -> List[RemoteMapEntry]:
         return [
             ("enable", "enable", {}),
             ("priority", "priority", {}),
@@ -109,10 +113,47 @@ class DownloadClient(ProwlarrConfigBase):
         ]
 
     @classmethod
-    def _from_remote(cls, tag_ids: Mapping[str, int], remote_attrs: Mapping[str, Any]) -> Self:
+    def _category_mappings_decoder(
+        cls,
+        category_ids: Mapping[str, int],
+        api_category_mappings: List[Dict[str, Any]],
+    ) -> Dict[str, Set[str]]:
+        category_mappings: Dict[str, Set[str]] = {}
+        category_names = {value: key for key, value in category_ids.items()}
+        for api_category_mapping in api_category_mappings:
+            category_mappings[api_category_mapping["clientCategory"]] = set(
+                category_names[category_id] for category_id in api_category_mapping["categories"]
+            )
+        return category_mappings
+
+    @classmethod
+    def _category_mappings_encoder(
+        cls,
+        category_ids: Mapping[str, int],
+        category_mappings: Mapping[str, Set[str]],
+    ) -> List[Dict[str, Any]]:
+        api_category_mappings: List[Dict[str, Any]] = []
+        for client_category, categories in category_mappings.items():
+            api_category_mappings.append(
+                {
+                    "clientCategory": client_category,
+                    "categories": sorted(
+                        category_ids[category_name] for category_name in categories
+                    ),
+                },
+            )
+        return api_category_mappings
+
+    @classmethod
+    def _from_remote(
+        cls,
+        category_ids: Mapping[str, int],
+        tag_ids: Mapping[str, int],
+        remote_attrs: Mapping[str, Any],
+    ) -> Self:
         return cls(
             **cls.get_local_attrs(
-                cls._get_base_remote_map(tag_ids) + cls._remote_map,
+                cls._get_base_remote_map(category_ids, tag_ids) + cls._remote_map,
                 remote_attrs,
             ),
         )
@@ -133,13 +174,14 @@ class DownloadClient(ProwlarrConfigBase):
         tree: str,
         secrets: ProwlarrSecrets,
         api_downloadclient_schemas: List[prowlarr.DownloadClientResource],
+        category_ids: Mapping[str, int],
         tag_ids: Mapping[str, int],
         downloadclient_name: str,
     ) -> None:
         api_schema = self._get_api_schema(api_downloadclient_schemas)
         set_attrs = self.get_create_remote_attrs(
             tree=tree,
-            remote_map=self._get_base_remote_map(tag_ids) + self._remote_map,
+            remote_map=self._get_base_remote_map(category_ids, tag_ids) + self._remote_map,
         )
         field_values: Dict[str, Any] = {
             field["name"]: field["value"] for field in set_attrs["fields"]
@@ -160,13 +202,14 @@ class DownloadClient(ProwlarrConfigBase):
         secrets: ProwlarrSecrets,
         remote: Self,
         api_downloadclient_schemas: List[prowlarr.DownloadClientResource],
+        category_ids: Mapping[str, int],
         tag_ids: Mapping[str, int],
         api_downloadclient: prowlarr.DownloadClientResource,
     ) -> bool:
         changed, updated_attrs = self.get_update_remote_attrs(
             tree=tree,
             remote=remote,
-            remote_map=self._get_base_remote_map(tag_ids) + self._remote_map,
+            remote_map=self._get_base_remote_map(category_ids, tag_ids) + self._remote_map,
         )
         if changed:
             if "fields" in updated_attrs:

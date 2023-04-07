@@ -19,6 +19,8 @@ Prowlarr plugin download client settings.
 
 from __future__ import annotations
 
+import itertools
+
 from logging import getLogger
 from typing import Dict, Tuple, Type, Union
 
@@ -119,8 +121,6 @@ class ProwlarrDownloadClientsSettings(ProwlarrConfigBase):
     Download clients that use Usenet or BitTorrent can be configured.
 
     ```yaml
-    ---
-
     prowlarr:
       settings:
         download_clients:
@@ -129,7 +129,27 @@ class ProwlarrDownloadClientsSettings(ProwlarrConfigBase):
               type: "transmission"
               host: "transmission"
               port: 9091
-            ...
+              ...
+    ```
+
+    Some download clients support mapping categories within a download client
+    to Prowlarr categories, to automatically classify downloads by content type.
+
+    This can be defined in Buildarr using the `category_mappings` attribute.
+
+    ```yaml
+    prowlarr:
+      settings:
+        download_clients:
+          definitions:
+            qBittorrent:
+              type: "qbittorrent"
+              ...
+              category_mappings:
+                "movies":
+                  - "Movies/HD"
+                  - "Movies/SD"
+                  ...
     ```
     """
 
@@ -147,6 +167,15 @@ class ProwlarrDownloadClientsSettings(ProwlarrConfigBase):
     def from_remote(cls, secrets: ProwlarrSecrets) -> Self:
         with prowlarr_api_client(secrets=secrets) as api_client:
             api_downloadclients = prowlarr.DownloadClientApi(api_client).list_download_client()
+            category_ids: Dict[str, int] = {
+                api_category.name: api_category.id
+                for api_category in itertools.chain.from_iterable(
+                    api_category_group.sub_categories
+                    for api_category_group in prowlarr.IndexerDefaultCategoriesApi(
+                        api_client,
+                    ).list_indexer_categories()
+                )
+            }
             tag_ids: Dict[str, int] = (
                 {tag.label: tag.id for tag in prowlarr.TagApi(api_client).list_tag()}
                 if any(api_downloadclient.tags for api_downloadclient in api_downloadclients)
@@ -157,6 +186,7 @@ class ProwlarrDownloadClientsSettings(ProwlarrConfigBase):
                 api_downloadclient.name: DOWNLOADCLIENT_TYPE_MAP[
                     api_downloadclient.implementation.lower()
                 ]._from_remote(
+                    category_ids=category_ids,
                     tag_ids=tag_ids,
                     remote_attrs=api_downloadclient.to_dict(),
                 )
@@ -181,6 +211,15 @@ class ProwlarrDownloadClientsSettings(ProwlarrConfigBase):
                 api_downloadclient.name: api_downloadclient
                 for api_downloadclient in downloadclient_api.list_download_client()
             }
+            category_ids: Dict[str, int] = {
+                api_category.name: api_category.id
+                for api_category in itertools.chain.from_iterable(
+                    api_category_group.sub_categories
+                    for api_category_group in prowlarr.IndexerDefaultCategoriesApi(
+                        api_client,
+                    ).list_indexer_categories()
+                )
+            }
             tag_ids: Dict[str, int] = (
                 {tag.label: tag.id for tag in prowlarr.TagApi(api_client).list_tag()}
                 if any(downloadclient.tags for downloadclient in self.definitions.values())
@@ -198,6 +237,7 @@ class ProwlarrDownloadClientsSettings(ProwlarrConfigBase):
                     tree=downloadclient_tree,
                     secrets=secrets,
                     api_downloadclient_schemas=api_downloadclient_schemas,
+                    category_ids=category_ids,
                     tag_ids=tag_ids,
                     downloadclient_name=downloadclient_name,
                 )
@@ -207,6 +247,7 @@ class ProwlarrDownloadClientsSettings(ProwlarrConfigBase):
                 secrets=secrets,
                 remote=remote.definitions[downloadclient_name],  # type: ignore[arg-type]
                 api_downloadclient_schemas=api_downloadclient_schemas,
+                category_ids=category_ids,
                 tag_ids=tag_ids,
                 api_downloadclient=api_downloadclients[downloadclient_name],
             ):
