@@ -208,25 +208,28 @@ class DownloadClient(ProwlarrConfigBase):
         tag_ids: Mapping[str, int],
         api_downloadclient: prowlarr.DownloadClientResource,
     ) -> bool:
-        changed, updated_attrs = self.get_update_remote_attrs(
+        changed, set_attrs = self.get_update_remote_attrs(
             tree=tree,
             remote=remote,
             remote_map=self._get_base_remote_map(category_ids, tag_ids) + self._remote_map,
+            set_unchanged=True,
         )
         if changed:
-            if "fields" in updated_attrs:
+            if "fields" in set_attrs:
                 field_values: Dict[str, Any] = {
-                    field["name"]: field["value"] for field in updated_attrs["fields"]
+                    field["name"]: field["value"] for field in set_attrs["fields"]
                 }
-                updated_attrs["fields"] = [
-                    ({**f, "value": field_values[f["name"]]} if f["name"] in field_values else f)
+                set_attrs["fields"] = [
+                    {**f, "value": field_values[f["name"]]}
                     for f in self._get_api_schema(api_downloadclient_schemas)["fields"]
                 ]
-            remote_attrs = {**api_downloadclient.to_dict(), **updated_attrs}
+            remote_attrs = {**api_downloadclient.to_dict(), **set_attrs}
             with prowlarr_api_client(secrets=secrets) as api_client:
-                prowlarr.IndexerProxyApi(api_client).update_indexer_proxy(
+                prowlarr.DownloadClientApi(api_client).update_download_client(
                     id=str(api_downloadclient.id),
-                    indexer_proxy_resource=prowlarr.IndexerProxyResource.from_dict(remote_attrs),
+                    download_client_resource=prowlarr.DownloadClientResource.from_dict(
+                        remote_attrs,
+                    ),
                 )
             return True
         return False

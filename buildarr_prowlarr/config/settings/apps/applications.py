@@ -216,29 +216,24 @@ class Application(ProwlarrConfigBase):
         tag_ids: Mapping[str, int],
         api_application: prowlarr.ApplicationResource,
     ) -> bool:
-        api_schema = self._get_api_schema(api_application_schemas)
-        changed, updated_attrs = self.get_update_remote_attrs(
+        changed, set_attrs = self.get_update_remote_attrs(
             tree=tree,
             remote=remote,
             remote_map=self._get_base_remote_map(category_ids, tag_ids) + self._remote_map,
+            set_unchanged=True,
         )
         if changed:
+            if "fields" in set_attrs:
+                field_values: Dict[str, Any] = {
+                    field["name"]: field["value"] for field in set_attrs["fields"]
+                }
+                set_attrs["fields"] = [
+                    {**f, "value": field_values[f["name"]]}
+                    for f in self._get_api_schema(api_application_schemas)["fields"]
+                ]
+            remote_attrs = {**api_application.to_dict(), **set_attrs}
             with prowlarr_api_client(secrets=secrets) as api_client:
-                application_api = prowlarr.ApplicationApi(api_client)
-                if "fields" in updated_attrs:
-                    field_values: Dict[str, Any] = {
-                        field["name"]: field["value"] for field in updated_attrs["fields"]
-                    }
-                    updated_attrs["fields"] = [
-                        (
-                            {**f, "value": field_values[f["name"]]}
-                            if f["name"] in field_values
-                            else f
-                        )
-                        for f in api_schema["fields"]
-                    ]
-                remote_attrs = {**api_application.to_dict(), **updated_attrs}
-                application_api.update_applications(
+                prowlarr.ApplicationApi(api_client).update_applications(
                     id=str(api_application.id),
                     application_resource=prowlarr.ApplicationResource.from_dict(remote_attrs),
                 )

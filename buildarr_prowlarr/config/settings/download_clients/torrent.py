@@ -20,10 +20,11 @@ Prowlarr plugin torrent download client definitions.
 from __future__ import annotations
 
 from logging import getLogger
-from typing import Dict, List, Literal, Mapping, Optional, Set
+from typing import Any, Dict, List, Literal, Mapping, Optional, Set
 
 from buildarr.config import RemoteMapEntry
 from buildarr.types import BaseEnum, BaseIntEnum, NonEmptyStr, Password, Port
+from pydantic import validator
 
 from ....types import LowerCaseNonEmptyStr
 from .base import DownloadClient
@@ -1062,6 +1063,21 @@ class TransmissionDownloadClientBase(TorrentDownloadClient):
         ("client_priority", "priority", {"is_field": True}),
         ("add_paused", "addPaused", {"is_field": True}),
     ]
+
+    @validator("directory")
+    def category_directory_mutual_exclusion(
+        cls,
+        value: Optional[str],
+        values: Mapping[str, Any],
+    ) -> Optional[str]:
+        directory = value
+        category: Optional[str] = values.get("category", None)
+        if directory and category:
+            raise ValueError(
+                "'directory' and 'category' are mutually exclusive "
+                "on a Transmission/Vuze download client",
+            )
+        return directory
 
 
 class TransmissionDownloadClient(TransmissionDownloadClientBase):

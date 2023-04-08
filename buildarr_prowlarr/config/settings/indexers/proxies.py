@@ -145,22 +145,22 @@ class Proxy(ProwlarrConfigBase):
         tag_ids: Mapping[str, int],
         api_proxy: prowlarr.IndexerProxyResource,
     ) -> bool:
-        api_schema = self._get_api_schema(api_proxy_schemas)
-        changed, updated_attrs = self.get_update_remote_attrs(
+        changed, set_attrs = self.get_update_remote_attrs(
             tree=tree,
             remote=remote,
             remote_map=self._get_base_remote_map(tag_ids) + self._remote_map,
+            set_unchanged=True,
         )
         if changed:
-            if "fields" in updated_attrs:
+            if "fields" in set_attrs:
                 field_values: Dict[str, Any] = {
-                    field["name"]: field["value"] for field in updated_attrs["fields"]
+                    field["name"]: field["value"] for field in set_attrs["fields"]
                 }
-                updated_attrs["fields"] = [
-                    ({**f, "value": field_values[f["name"]]} if f["name"] in field_values else f)
-                    for f in api_schema["fields"]
+                set_attrs["fields"] = [
+                    {**f, "value": field_values[f["name"]]}
+                    for f in self._get_api_schema(api_proxy_schemas)["fields"]
                 ]
-            remote_attrs = {**api_proxy.to_dict(), **updated_attrs}
+            remote_attrs = {**api_proxy.to_dict(), **set_attrs}
             with prowlarr_api_client(secrets=secrets) as api_client:
                 prowlarr.IndexerProxyApi(api_client).update_indexer_proxy(
                     id=str(api_proxy.id),

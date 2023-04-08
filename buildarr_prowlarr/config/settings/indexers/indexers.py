@@ -215,19 +215,26 @@ class Indexer(ProwlarrConfigBase):
         self,
         api_indexer_schemas: List[prowlarr.IndexerResource],
     ) -> Dict[str, Any]:
-        return {
-            k: v
-            for k, v in (
-                next(
-                    api_schema
-                    for api_schema in api_indexer_schemas
-                    if api_schema.definition_name.lower() == self.type.lower()
+        try:
+            return {
+                k: v
+                for k, v in (
+                    next(
+                        api_schema
+                        for api_schema in api_indexer_schemas
+                        if api_schema.definition_name.lower() == self.type.lower()
+                    )
+                    .to_dict()
+                    .items()
                 )
-                .to_dict()
-                .items()
-            )
-            if k not in ["id", "name", "added"]
-        }
+                if k not in ["id", "name", "added"]
+            }
+        except StopIteration:
+            expected_types = ", ".join(repr(s.definition_name.lower()) for s in api_indexer_schemas)
+            raise ValueError(
+                f"Invalid 'type' value for indexer '{self.type}' "
+                f"(expected one of: {expected_types})",
+            ) from None
 
     @classmethod
     def _from_remote(

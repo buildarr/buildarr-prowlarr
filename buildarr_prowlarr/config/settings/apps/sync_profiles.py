@@ -93,13 +93,14 @@ class SyncProfile(ProwlarrConfigBase):
         remote: Self,
         api_profile: prowlarr.AppProfileResource,
     ) -> bool:
-        changed, updated_attrs = self.get_update_remote_attrs(
+        changed, set_attrs = self.get_update_remote_attrs(
             tree=tree,
             remote=remote,
             remote_map=self._remote_map,
+            set_unchanged=True,
         )
         if changed:
-            remote_attrs = {**api_profile.to_dict(), **updated_attrs}
+            remote_attrs = {**api_profile.to_dict(), **set_attrs}
             with prowlarr_api_client(secrets=secrets) as api_client:
                 prowlarr.AppProfileApi(api_client).update_app_profile(
                     id=str(api_profile.id),
@@ -182,7 +183,10 @@ class SyncProfilesSettings(ProwlarrConfigBase):
         changed = False
         # Pull API objects and metadata required during the update operation.
         with prowlarr_api_client(secrets=secrets) as api_client:
-            api_profiles = prowlarr.AppProfileApi(api_client).list_app_profile()
+            api_profiles: Dict[str, prowlarr.AppProfileResource] = {
+                api_profile.name: api_profile
+                for api_profile in prowlarr.AppProfileApi(api_client).list_app_profile()
+            }
         # Compare local definitions to their remote equivalent.
         # If a local definition does not exist on the remote, create it.
         # If it does exist on the remote, attempt an an in-place modification,
