@@ -8,7 +8,7 @@ This is a bugfix release to resolve problems with the first release, particularl
 * Add mutual exclusion handling for the `category` and `directory` attributes in Transmission/Vuze download clients
 * Fix updating app sync profiles
 * Fix updating indexer proxies, download clients, application links and app sync profiles when not all type-specific resource values are defined in the configuration
-* Require at least [version 0.4.1](https://buildarr.github.io/plugins/sonarr/#v041-2023-04-08) of the Sonarr plugin for Buildarr, to fix bugs with instance linking
+* Require at least [version 0.4.1](https://buildarr.github.io/plugins/sonarr/release-notes/#v041-2023-04-08) of the Sonarr plugin for Buildarr, to fix bugs with instance linking
 
 ### Changed
 
