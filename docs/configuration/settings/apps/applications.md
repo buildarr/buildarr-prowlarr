@@ -5,8 +5,6 @@
       members:
         - delete_unmanaged
         - definitions
-      show_root_heading: false
-      show_source: false
 
 ## Configuration
 
@@ -18,8 +16,6 @@
         - sync_level
         - sync_categories
         - tags
-      show_root_heading: false
-      show_source: false
 
 ## LazyLibrarian
 
@@ -29,8 +25,6 @@
         - type
         - api_key
         - sync_categories
-      show_root_heading: false
-      show_source: false
 
 ## Lidarr
 
@@ -40,8 +34,6 @@
         - type
         - api_key
         - sync_categories
-      show_root_heading: false
-      show_source: false
 
 ## Mylar
 
@@ -51,8 +43,6 @@
         - type
         - api_key
         - sync_categories
-      show_root_heading: false
-      show_source: false
 
 ## Radarr
 
@@ -62,8 +52,6 @@
         - type
         - api_key
         - sync_categories
-      show_root_heading: false
-      show_source: false
 
 ## Readarr
 
@@ -73,8 +61,6 @@
         - type
         - api_key
         - sync_categories
-      show_root_heading: false
-      show_source: false
 
 ## Sonarr
 
@@ -86,8 +72,6 @@
         - api_key
         - sync_categories
         - anime_sync_categories
-      show_root_heading: false
-      show_source: false
 
 ## Whisparr
 
@@ -97,5 +81,3 @@
         - type
         - api_key
         - sync_categories
-      show_root_heading: false
-      show_source: false

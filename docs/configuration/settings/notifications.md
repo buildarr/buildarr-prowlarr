@@ -14,8 +14,6 @@ some kind of event (or problem) occurs.
         - on_health_issue
         - include_health_warnings
         - on_application_update
-      show_root_heading: false
-      show_source: false
 
 ## Apprise
 
@@ -29,8 +27,6 @@ some kind of event (or problem) occurs.
         - apprise_tags
         - auth_username
         - auth_password
-      show_root_heading: false
-      show_source: false
 
 ## Boxcar
 
@@ -39,8 +35,6 @@ some kind of event (or problem) occurs.
       members:
         - type
         - access_token
-      show_root_heading: false
-      show_source: false
 
 ## Custom Script
 
@@ -49,8 +43,6 @@ some kind of event (or problem) occurs.
       members:
         - type
         - path
-      show_root_heading: false
-      show_source: false
 
 ## Discord
 
@@ -64,8 +56,6 @@ some kind of event (or problem) occurs.
         - host
         - on_grab_fields
         - on_import_fields
-      show_root_heading: false
-      show_source: false
 
 ## Email
 
@@ -82,8 +72,6 @@ some kind of event (or problem) occurs.
         - recipient_addresses
         - cc_addresses
         - bcc_addresses
-      show_root_heading: false
-      show_source: false
 
 ## Gotify
 
@@ -94,8 +82,6 @@ some kind of event (or problem) occurs.
         - server
         - app_token
         - priority
-      show_root_heading: false
-      show_source: false
 
 ## Join
 
@@ -106,8 +92,6 @@ some kind of event (or problem) occurs.
         - api_key
         - device_names
         - priority
-      show_root_heading: false
-      show_source: false
 
 ## Mailgun
 
@@ -120,8 +104,6 @@ some kind of event (or problem) occurs.
         - from_address
         - sender_domain
         - recipient_addresses
-      show_root_heading: false
-      show_source: false
 
 ## Notifiarr
 
@@ -130,8 +112,6 @@ some kind of event (or problem) occurs.
       members:
         - type
         - api_key
-      show_root_heading: false
-      show_source: false
 
 ## ntfy
 
@@ -146,8 +126,6 @@ some kind of event (or problem) occurs.
         - topics
         - ntfy_tags
         - click_url
-      show_root_heading: false
-      show_source: false
 
 ## Prowl
 
@@ -157,8 +135,6 @@ some kind of event (or problem) occurs.
         - type
         - api_key
         - priority
-      show_root_heading: false
-      show_source: false
 
 ## Pushbullet
 
@@ -170,8 +146,6 @@ some kind of event (or problem) occurs.
         - device_ids
         - channel_tags
         - sender_id
-      show_root_heading: false
-      show_source: false
 
 ## Pushover
 
@@ -186,8 +160,6 @@ some kind of event (or problem) occurs.
         - retry
         - expire
         - sound
-      show_root_heading: false
-      show_source: false
 
 ## SendGrid
 
@@ -198,8 +170,6 @@ some kind of event (or problem) occurs.
         - api_key
         - from_address
         - recipient_addresses
-      show_root_heading: false
-      show_source: false
 
 ## Slack
 
@@ -211,8 +181,6 @@ some kind of event (or problem) occurs.
         - username
         - icon
         - channel
-      show_root_heading: false
-      show_source: false
 
 ## Telegram
 
@@ -223,8 +191,6 @@ some kind of event (or problem) occurs.
         - bot_token
         - chat_id
         - send_silently
-      show_root_heading: false
-      show_source: false
 
 ## Twitter
 
@@ -238,8 +204,6 @@ some kind of event (or problem) occurs.
         - access_token_secret
         - mention
         - direct_message
-      show_root_heading: false
-      show_source: false
 
 ## Webhook
 
@@ -251,5 +215,3 @@ some kind of event (or problem) occurs.
         - method
         - username
         - password
-      show_root_heading: false
-      show_source: false

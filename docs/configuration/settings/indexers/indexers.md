@@ -5,8 +5,6 @@
       members:
         - delete_unmanaged
         - definitions
-      show_root_heading: false
-      show_source: false
 
 ## Adding indexers to Buildarr
 
@@ -69,5 +67,3 @@ prowlarr:
         - tags
         - fields
         - secret_fields
-      show_root_heading: false
-      show_source: false

@@ -5,8 +5,6 @@
       members:
         - delete_unmanaged
         - definitions
-      show_root_heading: false
-      show_source: false
 
 ## Configuring download clients
 
@@ -16,8 +14,6 @@
         - enable
         - priority
         - tags
-      show_root_heading: false
-      show_source: false
 
 ## Usenet download clients
 
@@ -36,8 +32,6 @@ These download clients retrieve media using the [Usenet](https://en.wikipedia.or
         - password
         - category
         - directory
-      show_root_heading: false
-      show_source: false
 
 ## NZBGet
 
@@ -55,8 +49,6 @@ These download clients retrieve media using the [Usenet](https://en.wikipedia.or
         - client_priority
         - add_paused
         - category_mappings
-      show_root_heading: false
-      show_source: false
 
 ## NZBVortex
 
@@ -72,8 +64,6 @@ These download clients retrieve media using the [Usenet](https://en.wikipedia.or
         - category
         - client_priority
         - category_mappings
-      show_root_heading: false
-      show_source: false
 
 ## Pneumatic
 
@@ -82,8 +72,6 @@ These download clients retrieve media using the [Usenet](https://en.wikipedia.or
       members:
         - type
         - nzb_folder
-      show_root_heading: false
-      show_source: false
 
 ## SABnzbd
 
@@ -99,8 +87,6 @@ These download clients retrieve media using the [Usenet](https://en.wikipedia.or
         - category
         - client_priority
         - category_mappings
-      show_root_heading: false
-      show_source: false
 
 ## Usenet Blackhole
 
@@ -109,8 +95,6 @@ These download clients retrieve media using the [Usenet](https://en.wikipedia.or
       members:
         - type
         - nzb_folder
-      show_root_heading: false
-      show_source: false
 
 ## Torrent download clients
 
@@ -128,8 +112,6 @@ peer-to-peer file sharing protocol to retrieve media files.
         - use_ssl
         - rpc_path
         - secret_token
-      show_root_heading: false
-      show_source: false
 
 ## Deluge
 
@@ -145,8 +127,6 @@ peer-to-peer file sharing protocol to retrieve media files.
         - category
         - client_priority
         - category_mappings
-      show_root_heading: false
-      show_source: false
 
 ## Download Station (Torrent)
 
@@ -161,8 +141,6 @@ peer-to-peer file sharing protocol to retrieve media files.
         - password
         - category
         - directory
-      show_root_heading: false
-      show_source: false
 
 ## Flood
 
@@ -181,8 +159,6 @@ peer-to-peer file sharing protocol to retrieve media files.
         - additional_tags
         - add_paused
         - category_mappings
-      show_root_heading: false
-      show_source: false
 
 ## Freebox
 
@@ -201,8 +177,6 @@ peer-to-peer file sharing protocol to retrieve media files.
         - client_priority
         - add_paused
         - category_mappings
-      show_root_heading: false
-      show_source: false
 
 ## Hadouken
 
@@ -218,8 +192,6 @@ peer-to-peer file sharing protocol to retrieve media files.
         - password
         - category
         - category_mappings
-      show_root_heading: false
-      show_source: false
 
 ## qBittorrent
 
@@ -239,8 +211,6 @@ peer-to-peer file sharing protocol to retrieve media files.
         - sequential_order
         - first_and_last_first
         - category_mappings
-      show_root_heading: false
-      show_source: false
 
 ## RTorrent (ruTorrent)
 
@@ -258,8 +228,6 @@ peer-to-peer file sharing protocol to retrieve media files.
         - client_priority
         - add_stopped
         - category_mappings
-      show_root_heading: false
-      show_source: false
 
 ## Torrent Blackhole
 
@@ -271,8 +239,6 @@ peer-to-peer file sharing protocol to retrieve media files.
         - save_magnet_files
         - magnet_file_extension
         - read_only
-      show_root_heading: false
-      show_source: false
 
 ## Transmission/Vuze
 
@@ -295,8 +261,6 @@ To use Vuze, set the `type` attribute in the download client to `vuze`.
         - directory
         - client_priority
         - add_paused
-      show_root_heading: false
-      show_source: false
 
 ## uTorrent
 
@@ -314,5 +278,3 @@ To use Vuze, set the `type` attribute in the download client to `vuze`.
         - client_priority
         - initial_state
         - category_mappings
-      show_root_heading: false
-      show_source: false

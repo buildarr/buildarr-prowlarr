@@ -5,8 +5,6 @@
       members:
         - delete_unmanaged
         - definitions
-      show_root_heading: false
-      show_source: false
 
 ## Configuring indexer proxies
 
@@ -14,8 +12,6 @@
     options:
       members:
         - tags
-      show_root_heading: false
-      show_source: false
 
 ## FlareSolverr
 
@@ -25,8 +21,6 @@
         - type
         - host_url
         - request_timeout
-      show_root_heading: false
-      show_source: false
 
 ## HTTP proxy
 
@@ -38,8 +32,6 @@
         - port
         - username
         - password
-      show_root_heading: false
-      show_source: false
 
 ## SOCKS4 proxy
 
@@ -51,8 +43,6 @@
         - port
         - username
         - password
-      show_root_heading: false
-      show_source: false
 
 ## SOCKS5 proxy
 
@@ -64,5 +54,3 @@
         - port
         - username
         - password
-      show_root_heading: false
-      show_source: false

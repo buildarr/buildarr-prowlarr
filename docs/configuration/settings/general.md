@@ -44,8 +44,6 @@ Take care when changing these settings.
         - use_ssl
         - url_base
         - instance_name
-      show_root_heading: false
-      show_source: false
 
 ## Security
 
@@ -57,8 +55,6 @@ Take care when changing these settings.
         - username
         - password
         - certificate_validation
-      show_root_heading: false
-      show_source: false
 
 ## Proxy
 
@@ -73,8 +69,6 @@ Take care when changing these settings.
         - password
         - ignored_addresses
         - bypass_proxy_for_local_addresses
-      show_root_heading: false
-      show_source: false
 
 ## Logging
 
@@ -82,8 +76,6 @@ Take care when changing these settings.
     options:
       members:
         - log_level
-      show_root_heading: false
-      show_source: false
 
 ## Analytics
 
@@ -91,8 +83,6 @@ Take care when changing these settings.
     options:
       members:
         - send_anonymous_usage_data
-      show_root_heading: false
-      show_source: false
 
 ## Updates
 
@@ -103,8 +93,6 @@ Take care when changing these settings.
         - automatic
         - mechanism
         - script_path
-      show_root_heading: false
-      show_source: false
 
 ## Backup
 
@@ -114,5 +102,3 @@ Take care when changing these settings.
         - folder
         - interval
         - retention
-      show_root_heading: false
-      show_source: false

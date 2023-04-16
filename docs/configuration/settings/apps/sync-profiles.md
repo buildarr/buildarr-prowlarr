@@ -5,8 +5,6 @@
       members:
         - delete_unmanaged
         - definitions
-      show_root_heading: false
-      show_source: false
 
 ## Configuration
 
@@ -17,5 +15,3 @@
         - enable_interactive_search
         - enable_automatic_search
         - minimum_seeders
-      show_root_heading: false
-      show_source: false

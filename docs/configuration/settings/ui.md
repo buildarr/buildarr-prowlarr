@@ -12,5 +12,3 @@
         - enable_color_impaired_mode
         - theme
         - ui_language
-      show_root_heading: false
-      show_source: false
