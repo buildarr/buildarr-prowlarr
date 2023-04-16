@@ -58,7 +58,7 @@ some kind of event (or problem) occurs.
     options:
       members:
         - type
-        - webook_url
+        - webhook_url
         - username
         - avatar
         - host

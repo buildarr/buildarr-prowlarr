@@ -25,7 +25,7 @@ from typing import Any, Dict, List, Literal, Mapping, Optional, Set, Tuple, Type
 import prowlarr
 
 from buildarr.config import RemoteMapEntry
-from buildarr.types import BaseEnum, BaseIntEnum, NonEmptyStr, Password, Port
+from buildarr.types import BaseEnum, NonEmptyStr, Password, Port
 from pydantic import AnyHttpUrl, ConstrainedInt, Field, NameEmail, SecretStr
 from typing_extensions import Annotated, Self
 
@@ -36,7 +36,7 @@ from ..types import ProwlarrConfigBase
 logger = getLogger(__name__)
 
 
-class OnGrabField(BaseIntEnum):
+class OnGrabField(BaseEnum):
     """
     Values for `on_grab_fields` for the Discord connection.
     """
@@ -53,7 +53,7 @@ class OnGrabField(BaseIntEnum):
     fanart = 9
 
 
-class OnImportField(BaseIntEnum):
+class OnImportField(BaseEnum):
     """
     Values for `on_import_fields` for the Discord connection.
     """
@@ -96,7 +96,7 @@ class JoinPriority(BaseEnum):
     emergency = 2
 
 
-class NtfyshPriority(BaseIntEnum):
+class NtfyshPriority(BaseEnum):
     min = 1
     low = 2
     default = 3
@@ -363,8 +363,7 @@ class Notification(ProwlarrConfigBase):
             return True
         return False
 
-    def _delete_remote(self, tree: str, secrets: ProwlarrSecrets, notification_id: int) -> None:
-        logger.info("%s: (...) -> (deleted)", tree)
+    def _delete_remote(self, secrets: ProwlarrSecrets, notification_id: int) -> None:
         with prowlarr_api_client(secrets=secrets) as api_client:
             prowlarr.NotificationApi(api_client).delete_notification(id=notification_id)
 
@@ -1516,6 +1515,18 @@ class ProwlarrNotificationsSettings(ProwlarrConfigBase):
                 api_notification=api_notifications[notification_name],
             ):
                 changed = True
+        # Return whether or not the remote instance was changed.
+        return changed
+
+    def delete_remote(self, tree: str, secrets: ProwlarrSecrets, remote: Self) -> bool:
+        # Track whether or not any changes have been made on the remote instance.
+        changed = False
+        # Pull API objects and metadata required during the update operation.
+        with prowlarr_api_client(secrets=secrets) as api_client:
+            notification_ids: Dict[str, int] = {
+                api_notification.name: api_notification.id
+                for api_notification in prowlarr.NotificationApi(api_client).list_notification()
+            }
         # Traverse the remote definitions, and see if there are any remote definitions
         # that do not exist in the local configuration.
         # If `delete_unmanaged` is enabled, delete it from the remote.
@@ -1525,10 +1536,10 @@ class ProwlarrNotificationsSettings(ProwlarrConfigBase):
             if notification_name not in self.definitions:
                 notification_tree = f"{tree}.definitions[{repr(notification_name)}]"
                 if self.delete_unmanaged:
+                    logger.info("%s: (...) -> (deleted)", notification_tree)
                     notification._delete_remote(
-                        tree=notification_tree,
                         secrets=secrets,
-                        notification_id=api_notifications[notification_name].id,
+                        notification_id=notification_ids[notification_name],
                     )
                     changed = True
                 else:

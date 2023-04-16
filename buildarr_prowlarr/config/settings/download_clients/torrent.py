@@ -23,7 +23,7 @@ from logging import getLogger
 from typing import Any, Dict, List, Literal, Mapping, Optional, Set
 
 from buildarr.config import RemoteMapEntry
-from buildarr.types import BaseEnum, BaseIntEnum, NonEmptyStr, Password, Port
+from buildarr.types import BaseEnum, NonEmptyStr, Password, Port
 from pydantic import validator
 
 from ....types import LowerCaseNonEmptyStr
@@ -72,7 +72,7 @@ class FloodMediaTag(BaseEnum):
     network = 6
 
 
-class FreeboxPriority(BaseIntEnum):
+class FreeboxPriority(BaseEnum):
     last = 0
     first = 1
 
@@ -565,7 +565,7 @@ class FreeboxDownloadClient(TorrentDownloadClient):
     Adding a category specific to Prowlarr avoids conflicts with unrelated non-Prowlarr downloads.
     """
 
-    priority: FreeboxPriority = FreeboxPriority.last
+    client_priority: FreeboxPriority = FreeboxPriority.last
     """
     Priority to use when adding a download to the client.
     """
@@ -607,7 +607,7 @@ class FreeboxDownloadClient(TorrentDownloadClient):
                 "category",
                 {"is_field": True, "decoder": lambda v: v or None, "encoder": lambda v: v or ""},
             ),
-            ("priority", "priority", {"is_field": True}),
+            ("client_priority", "priority", {"is_field": True}),
             ("add_paused", "addPaused", {"is_field": True}),
             (
                 "category_mappings",

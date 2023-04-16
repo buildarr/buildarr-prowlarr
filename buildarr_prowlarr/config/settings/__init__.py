@@ -103,7 +103,5 @@ class ProwlarrSettings(ProwlarrConfigBase):
                     remote.ui,
                     check_unmanaged=check_unmanaged,
                 ),
-                # TODO: destroy indexers
-                # TODO: destroy tags
             ],
         )

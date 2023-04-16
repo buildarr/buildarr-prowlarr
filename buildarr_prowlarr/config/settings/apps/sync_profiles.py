@@ -109,8 +109,7 @@ class SyncProfile(ProwlarrConfigBase):
             return True
         return False
 
-    def _delete_remote(self, tree: str, secrets: ProwlarrSecrets, profile_id: int) -> None:
-        logger.info("%s: (...) -> (deleted)", tree)
+    def _delete_remote(self, secrets: ProwlarrSecrets, profile_id: int) -> None:
         with prowlarr_api_client(secrets=secrets) as api_client:
             prowlarr.AppProfileApi(api_client).delete_app_profile(id=profile_id)
 
@@ -207,6 +206,18 @@ class SyncProfilesSettings(ProwlarrConfigBase):
                 api_profile=api_profiles[profile_name],
             ):
                 changed = True
+        # Return whether or not the remote instance was changed.
+        return changed
+
+    def delete_remote(self, tree: str, secrets: ProwlarrSecrets, remote: Self) -> bool:
+        # Track whether or not any changes have been made on the remote instance.
+        changed = False
+        # Pull API objects and metadata required during the update operation.
+        with prowlarr_api_client(secrets=secrets) as api_client:
+            profile_ids: Dict[str, int] = {
+                api_profile.name: api_profile.id
+                for api_profile in prowlarr.AppProfileApi(api_client).list_app_profile()
+            }
         # Traverse the remote definitions, and see if there are any remote definitions
         # that do not exist in the local configuration.
         # If `delete_unmanaged` is enabled, delete it from the remote.
@@ -216,10 +227,10 @@ class SyncProfilesSettings(ProwlarrConfigBase):
             if profile_name not in self.definitions:
                 profile_tree = f"{tree}.definitions[{repr(profile_name)}]"
                 if self.delete_unmanaged:
+                    logger.info("%s: (...) -> (deleted)", profile_tree)
                     profile._delete_remote(
-                        tree=profile_tree,
                         secrets=secrets,
-                        profile_id=api_profiles[profile_name].id,
+                        profile_id=profile_ids[profile_name],
                     )
                     changed = True
                 else:

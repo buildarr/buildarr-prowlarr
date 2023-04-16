@@ -240,15 +240,9 @@ class Application(ProwlarrConfigBase):
             return True
         return False
 
-    def _delete_remote(self, tree: str, secrets: ProwlarrSecrets, application_id: int) -> None:
-        logger.info("%s: (...) -> (deleted)", tree)
+    def _delete_remote(self, secrets: ProwlarrSecrets, application_id: int) -> None:
         with prowlarr_api_client(secrets=secrets) as api_client:
             prowlarr.ApplicationApi(api_client).delete_applications(id=application_id)
-
-    class Config(ProwlarrConfigBase.Config):
-        # Ensure in-place assignments of attributes are always validated,
-        # since this class performs such modifications in certain cases.
-        validate_assignment = True
 
 
 class LazylibrarianApplication(Application):
@@ -726,6 +720,18 @@ class ApplicationsSettings(ProwlarrConfigBase):
                 api_application=api_applications[application_name],
             ):
                 changed = True
+        # Return whether or not the remote instance was changed.
+        return changed
+
+    def delete_remote(self, tree: str, secrets: ProwlarrSecrets, remote: Self) -> bool:
+        # Track whether or not any changes have been made on the remote instance.
+        changed = False
+        # Pull API objects and metadata required during the update operation.
+        with prowlarr_api_client(secrets=secrets) as api_client:
+            application_ids: Dict[str, int] = {
+                api_application.name: api_application.id
+                for api_application in prowlarr.ApplicationApi(api_client).list_applications()
+            }
         # Traverse the remote definitions, and see if there are any remote definitions
         # that do not exist in the local configuration.
         # If `delete_unmanaged` is enabled, delete it from the remote.
@@ -735,10 +741,10 @@ class ApplicationsSettings(ProwlarrConfigBase):
             if application_name not in self.definitions:
                 application_tree = f"{tree}.definitions[{repr(application_name)}]"
                 if self.delete_unmanaged:
+                    logger.info("%s: (...) -> (deleted)", application_tree)
                     application._delete_remote(
-                        tree=application_tree,
                         secrets=secrets,
-                        application_id=api_applications[application_name].id,
+                        application_id=application_ids[application_name],
                     )
                     changed = True
                 else:

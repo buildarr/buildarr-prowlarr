@@ -90,13 +90,16 @@ def get_initialize_js(host_url: str, api_key: Optional[str] = None) -> Dict[str,
     """
 
     url = f"{host_url}/initialize.js"
+
     logger.debug("GET %s", url)
+
     res = requests.get(
         url,
         headers={"X-Api-Key": api_key} if api_key else None,
-        timeout=state.config.buildarr.request_timeout,
+        timeout=state.request_timeout,
         allow_redirects=False,
     )
+
     if res.status_code != HTTPStatus.OK:
         logger.debug("GET %s -> status_code=%i res=%s", url, res.status_code, res.text)
         if res.status_code in (HTTPStatus.UNAUTHORIZED, HTTPStatus.FOUND):
@@ -109,9 +112,12 @@ def get_initialize_js(host_url: str, api_key: Optional[str] = None) -> Dict[str,
             f"Unable to retrieve 'initialize.js': {error_message}",
             status_code=status_code,
         )
+
     res_match = re.match(INITIALIZE_JS_RES_PATTERN, res.text)
     if not res_match:
         raise RuntimeError(f"No matches for 'initialize.js' parsing: {res.text}")
     res_json = json5.loads(res_match.group(1))
+
     logger.debug("GET %s -> status_code=%i res=%s", url, res.status_code, repr(res_json))
+
     return res_json

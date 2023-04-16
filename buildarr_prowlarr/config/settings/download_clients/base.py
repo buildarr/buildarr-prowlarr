@@ -234,12 +234,6 @@ class DownloadClient(ProwlarrConfigBase):
             return True
         return False
 
-    def _delete_remote(
-        self,
-        tree: str,
-        secrets: ProwlarrSecrets,
-        downloadclient_id: int,
-    ) -> None:
-        logger.info("%s: (...) -> (deleted)", tree)
+    def _delete_remote(self, secrets: ProwlarrSecrets, downloadclient_id: int) -> None:
         with prowlarr_api_client(secrets=secrets) as api_client:
             prowlarr.DownloadClientApi(api_client).delete_download_client(id=downloadclient_id)

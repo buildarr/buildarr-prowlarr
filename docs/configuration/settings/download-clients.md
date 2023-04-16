@@ -198,7 +198,7 @@ peer-to-peer file sharing protocol to retrieve media files.
         - app_token
         - destination_directory
         - category
-        - priority
+        - client_priority
         - add_paused
         - category_mappings
       show_root_heading: false

@@ -585,8 +585,7 @@ class Indexer(ProwlarrConfigBase):
             return True
         return False
 
-    def _delete_remote(self, tree: str, secrets: ProwlarrSecrets, indexer_id: int) -> None:
-        logger.info("%s: (...) -> (deleted)", tree)
+    def _delete_remote(self, secrets: ProwlarrSecrets, indexer_id: int) -> None:
         with prowlarr_api_client(secrets=secrets) as api_client:
             prowlarr.IndexerApi(api_client).delete_indexer(id=indexer_id)
 
@@ -670,8 +669,8 @@ class IndexersSettings(ProwlarrConfigBase):
         with prowlarr_api_client(secrets=secrets) as api_client:
             indexer_api = prowlarr.IndexerApi(api_client)
             api_indexer_schemas = indexer_api.list_indexer_schema()
-            indexer_api_objs: Dict[str, prowlarr.IndexerResource] = {
-                indexer.name: indexer for indexer in indexer_api.list_indexer()
+            api_indexers: Dict[str, prowlarr.IndexerResource] = {
+                api_indexer.name: api_indexer for api_indexer in indexer_api.list_indexer()
             }
             sync_profile_ids: Dict[str, int] = {
                 profile.name: profile.id
@@ -706,11 +705,23 @@ class IndexersSettings(ProwlarrConfigBase):
                 api_indexer_schemas=api_indexer_schemas,
                 sync_profile_ids=sync_profile_ids,
                 tag_ids=tag_ids,
-                indexer_id=indexer_api_objs[indexer_name].id,
+                indexer_id=api_indexers[indexer_name].id,
                 indexer_name=indexer_name,
-                indexer_added=indexer_api_objs[indexer_name].added,
+                indexer_added=api_indexers[indexer_name].added,
             ):
                 changed = True
+        # Return whether or not the remote instance was changed.
+        return changed
+
+    def delete_remote(self, tree: str, secrets: ProwlarrSecrets, remote: Self) -> bool:
+        # Track whether or not any changes have been made on the remote instance.
+        changed = False
+        # Pull API objects and metadata required during the update operation.
+        with prowlarr_api_client(secrets=secrets) as api_client:
+            indexer_ids: Dict[str, int] = {
+                api_indexer.name: api_indexer.id
+                for api_indexer in prowlarr.IndexerApi(api_client).list_indexer()
+            }
         # Traverse the remote definitions, and see if there are any remote definitions
         # that do not exist in the local configuration.
         # If `delete_unmanaged` is enabled, delete it from the remote.
@@ -720,11 +731,8 @@ class IndexersSettings(ProwlarrConfigBase):
             if indexer_name not in self.definitions:
                 indexer_tree = f"{tree}.definitions[{repr(indexer_name)}]"
                 if self.delete_unmanaged:
-                    indexer._delete_remote(
-                        tree=indexer_tree,
-                        secrets=secrets,
-                        indexer_id=indexer_api_objs[indexer_name].id,
-                    )
+                    logger.info("%s: (...) -> (deleted)", indexer_tree)
+                    indexer._delete_remote(secrets=secrets, indexer_id=indexer_ids[indexer_name])
                     changed = True
                 else:
                     logger.debug("%s: (...) (unmanaged)", indexer_tree)

@@ -252,6 +252,20 @@ class ProwlarrDownloadClientsSettings(ProwlarrConfigBase):
                 api_downloadclient=api_downloadclients[downloadclient_name],
             ):
                 changed = True
+        # Return whether or not the remote instance was changed.
+        return changed
+
+    def delete_remote(self, tree: str, secrets: ProwlarrSecrets, remote: Self) -> bool:
+        # Track whether or not any changes have been made on the remote instance.
+        changed = False
+        # Pull API objects and metadata required during the update operation.
+        with prowlarr_api_client(secrets=secrets) as api_client:
+            downloadclient_ids: Dict[str, int] = {
+                api_downloadclient.name: api_downloadclient.id
+                for api_downloadclient in prowlarr.DownloadClientApi(
+                    api_client,
+                ).list_download_client()
+            }
         # Traverse the remote definitions, and see if there are any remote definitions
         # that do not exist in the local configuration.
         # If `delete_unmanaged` is enabled, delete it from the remote.
@@ -261,10 +275,10 @@ class ProwlarrDownloadClientsSettings(ProwlarrConfigBase):
             if downloadclient_name not in self.definitions:
                 downloadclient_tree = f"{tree}.definitions[{repr(downloadclient_name)}]"
                 if self.delete_unmanaged:
+                    logger.info("%s: (...) -> (deleted)", downloadclient_tree)
                     downloadclient._delete_remote(
-                        tree=downloadclient_tree,
                         secrets=secrets,
-                        downloadclient_id=api_downloadclients[downloadclient_name].id,
+                        downloadclient_id=downloadclient_ids[downloadclient_name],
                     )
                     changed = True
                 else:

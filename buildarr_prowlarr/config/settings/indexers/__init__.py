@@ -43,8 +43,6 @@ class ProwlarrIndexersSettings(ProwlarrConfigBase):
         check_unmanaged: bool = False,
     ) -> bool:
         # Overload base function to guarantee execution order of section updates.
-        # 1. Tags must be created before everything else, and destroyed after they
-        #    are no longer referenced elsewhere.
         return any(
             [
                 self.proxies.update_remote(
@@ -59,7 +57,14 @@ class ProwlarrIndexersSettings(ProwlarrConfigBase):
                     remote.indexers,
                     check_unmanaged=check_unmanaged,
                 ),
-                # TODO: destroy indexers
-                # TODO: destroy tags
+            ],
+        )
+
+    def delete_remote(self, tree: str, secrets: ProwlarrSecrets, remote: Self) -> bool:
+        # Overload base function to guarantee execution order of section deletions.
+        return any(
+            [
+                self.indexers.delete_remote(f"{tree}.indexers", secrets, remote.indexers),
+                self.proxies.delete_remote(f"{tree}.proxies", secrets, remote.proxies),
             ],
         )

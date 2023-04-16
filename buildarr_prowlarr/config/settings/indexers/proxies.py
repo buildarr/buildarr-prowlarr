@@ -169,8 +169,7 @@ class Proxy(ProwlarrConfigBase):
             return True
         return False
 
-    def _delete_remote(self, tree: str, secrets: ProwlarrSecrets, proxy_id: int) -> None:
-        logger.info("%s: (...) -> (deleted)", tree)
+    def _delete_remote(self, secrets: ProwlarrSecrets, proxy_id: int) -> None:
         with prowlarr_api_client(secrets=secrets) as api_client:
             prowlarr.IndexerProxyApi(api_client).delete_indexer_proxy(id=proxy_id)
 
@@ -480,6 +479,18 @@ class ProxiesSettings(ProwlarrConfigBase):
                 api_proxy=api_proxies[proxy_name],
             ):
                 changed = True
+        # Return whether or not the remote instance was changed.
+        return changed
+
+    def delete_remote(self, tree: str, secrets: ProwlarrSecrets, remote: Self) -> bool:
+        # Track whether or not any changes have been made on the remote instance.
+        changed = False
+        # Pull API objects and metadata required during the update operation.
+        with prowlarr_api_client(secrets=secrets) as api_client:
+            proxy_ids: Dict[str, int] = {
+                api_proxy.name: api_proxy.id
+                for api_proxy in prowlarr.IndexerProxyApi(api_client).list_indexer_proxy()
+            }
         # Traverse the remote definitions, and see if there are any remote definitions
         # that do not exist in the local configuration.
         # If `delete_unmanaged` is enabled, delete it from the remote.
@@ -489,10 +500,10 @@ class ProxiesSettings(ProwlarrConfigBase):
             if proxy_name not in self.definitions:
                 proxy_tree = f"{tree}.definitions[{repr(proxy_name)}]"
                 if self.delete_unmanaged:
+                    logger.info("%s: (...) -> (deleted)", proxy_tree)
                     proxy._delete_remote(
-                        tree=proxy_tree,
                         secrets=secrets,
-                        proxy_id=api_proxies[proxy_name].id,
+                        proxy_id=proxy_ids[proxy_name],
                     )
                     changed = True
                 else:

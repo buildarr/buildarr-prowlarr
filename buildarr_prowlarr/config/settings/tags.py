@@ -51,17 +51,6 @@ class ProwlarrTagsSettings(ProwlarrConfigBase):
     in this configuration section.
     """
 
-    delete_unused: bool = False
-    """
-    Delete tags that are not used by any resource in Buildarr.
-
-    Note that tags not being used in Buildarr are not necessarily
-    unused by Prowlarr, so be careful about when to use this option.
-
-    Prowlarr appears to periodically clean up unused tags,
-    so in most cases there is no need to enable this option.
-    """
-
     definitions: Set[NonEmptyStr] = set()
     """
     Define tags that are used within Buildarr here.
@@ -83,9 +72,7 @@ class ProwlarrTagsSettings(ProwlarrConfigBase):
         remote: Self,
         check_unmanaged: bool = False,
     ) -> bool:
-        # This only does creations and updates.
-        # Deletes (and empty tag list prints) are done AFTER all other modifications are made.
-        # TODO: Implement tag deletions.
+        # This only does creations and updates, as Prowlarr automatically cleans up unused tags.
         changed = False
         with prowlarr_api_client(secrets=secrets) as api_client:
             tag_api = prowlarr.TagApi(api_client)
