@@ -123,6 +123,7 @@ class ProwlarrSettings(ProwlarrConfigBase):
                     secrets,
                     remote.notifications,
                 ),
+                self.tags.delete_remote(f"{tree}.tags", secrets, remote.tags),
                 self.general.delete_remote(f"{tree}.general", secrets, remote.general),
                 self.ui.delete_remote(f"{tree}.ui", secrets, remote.ui),
             ],
