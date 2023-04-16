@@ -1,4 +1,19 @@
-# Release Notes
+# Release Notes (Buildarr Prowlarr Plugin)
+
+## [v0.2.0](https://github.com/buildarr/buildarr-prowlarr/releases/tag/v0.2.0) - 2023-04-16
+
+This updates the Prowlarr plugin so that it is compatible with [Buildarr v0.5.0](https://buildarr.github.io/release-notes/#v050-2023-04-16).
+
+Other changes to the Prowlarr plugin for this release include:
+
+* Rename the Freebox download client `priority` attribute to `client_priority` (same as other download client types), as it was shadowing the Prowlarr-oriented `priority` attribute (common to all download clients), and giving incorrect values for both attributes
+* Improve support for deleting resources with `delete_unmanaged`, by using the new `delete_remote` API function
+* Remove the `prowlarr.tags.delete_unused` attribute (for deleting Prowlarr tags not used in Buildarr), as it was unimplemented and Prowlarr automatically cleans up unused tags anyway
+
+### Changed
+
+* Update plugin to newer Buildarr API standards ([#10](https://github.com/buildarr/buildarr-prowlarr/pull/10))
+
 
 ## [v0.1.1](https://github.com/buildarr/buildarr-prowlarr/releases/tag/v0.1.1) - 2023-04-08
 
