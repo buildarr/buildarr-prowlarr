@@ -57,8 +57,8 @@ class ProwlarrSettings(ProwlarrConfigBase):
         check_unmanaged: bool = False,
     ) -> bool:
         # Overload base function to guarantee execution order of section updates.
-        # 1. Tags must be created before everything else, and destroyed after they
-        #    are no longer referenced elsewhere.
+        # 1. Tags must be created before everything else.
+        # 2. Apps/Sync Profiles must be created before Indexers.
         return any(
             [
                 self.tags.update_remote(
@@ -103,5 +103,27 @@ class ProwlarrSettings(ProwlarrConfigBase):
                     remote.ui,
                     check_unmanaged=check_unmanaged,
                 ),
+            ],
+        )
+
+    def delete_remote(self, tree: str, secrets: ProwlarrSecrets, remote: Self) -> bool:
+        # Overload base function to guarantee execution order of section deletions.
+        # 1. Indexers must be deleted before Apps/Sync Profiles.
+        return any(
+            [
+                self.indexers.delete_remote(f"{tree}.indexers", secrets, remote.indexers),
+                self.apps.delete_remote(f"{tree}.apps", secrets, remote.apps),
+                self.download_clients.delete_remote(
+                    f"{tree}.download_clients",
+                    secrets,
+                    remote.download_clients,
+                ),
+                self.notifications.delete_remote(
+                    f"{tree}.notifications",
+                    secrets,
+                    remote.notifications,
+                ),
+                self.general.delete_remote(f"{tree}.general", secrets, remote.general),
+                self.ui.delete_remote(f"{tree}.ui", secrets, remote.ui),
             ],
         )
