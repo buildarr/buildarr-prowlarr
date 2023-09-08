@@ -1,5 +1,19 @@
 # Release Notes (Buildarr Prowlarr Plugin)
 
+## [v0.3.0](https://github.com/buildarr/buildarr-prowlarr/releases/tag/v0.3.0) - 2023-09-09
+
+This updates the Prowlarr plugin so that it is compatible with [Buildarr v0.6.0](https://buildarr.github.io/release-notes/#v060-2023-09-02).
+This version is also backwards compatible with [Buildarr v0.5.0](https://buildarr.github.io/release-notes/#v050-2023-04-16).
+
+Other changes to the Prowlarr plugin for this release include:
+
+* Relax URL parsing on the `buildarr prowlarr dump-config` command, fixing configuration dumping from Prowlarr instances without a canonical domain name (e.g. IP addresses and `localhost`)
+
+### Changed
+
+* Update package metadata and dependencies ([#15](https://github.com/buildarr/buildarr-prowlarr/pull/15))
+
+
 ## [v0.2.0](https://github.com/buildarr/buildarr-prowlarr/releases/tag/v0.2.0) - 2023-04-16
 
 This updates the Prowlarr plugin so that it is compatible with [Buildarr v0.5.0](https://buildarr.github.io/release-notes/#v050-2023-04-16).
