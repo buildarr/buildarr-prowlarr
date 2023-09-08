@@ -72,7 +72,14 @@ class ProwlarrSecrets(_ProwlarrSecrets):
             if len(hostname_port) > 1
             else (443 if protocol == "https" else 80)
         )
-        return cls(hostname=hostname, port=port, protocol=protocol, api_key=api_key)
+        return cls(
+            **{  # type: ignore[arg-type]
+                "hostname": hostname,
+                "port": port,
+                "protocol": protocol,
+                "api_key": api_key,
+            },
+        )
 
     @classmethod
     def get(cls, config: ProwlarrConfig) -> Self:

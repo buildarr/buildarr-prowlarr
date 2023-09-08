@@ -191,7 +191,7 @@ class SyncProfilesSettings(ProwlarrConfigBase):
         # If it does exist on the remote, attempt an an in-place modification,
         # and set the `changed` flag if modifications were made.
         for profile_name, profile in self.definitions.items():
-            profile_tree = f"{tree}.definitions[{repr(profile_name)}]"
+            profile_tree = f"{tree}.definitions[{profile_name!r}]"
             if profile_name not in remote.definitions:
                 profile._create_remote(
                     tree=profile_tree,
@@ -225,7 +225,7 @@ class SyncProfilesSettings(ProwlarrConfigBase):
         # the existence of the unmanaged definition.
         for profile_name, profile in remote.definitions.items():
             if profile_name not in self.definitions:
-                profile_tree = f"{tree}.definitions[{repr(profile_name)}]"
+                profile_tree = f"{tree}.definitions[{profile_name!r}]"
                 if self.delete_unmanaged:
                     logger.info("%s: (...) -> (deleted)", profile_tree)
                     profile._delete_remote(

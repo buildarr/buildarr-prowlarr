@@ -63,7 +63,7 @@ class ProwlarrTagsSettings(ProwlarrConfigBase):
     def from_remote(cls, secrets: ProwlarrSecrets) -> Self:
         with prowlarr_api_client(secrets=secrets) as api_client:
             tags = prowlarr.TagApi(api_client).list_tag()
-        return cls(definitions=[tag.label for tag in tags])
+        return cls(definitions=set(tag.label for tag in tags))
 
     def update_remote(
         self,

@@ -20,7 +20,7 @@ Prowlarr plugin indexer proxy configuration.
 from __future__ import annotations
 
 from logging import getLogger
-from typing import Any, Dict, List, Literal, Mapping, Optional, Set, Tuple, Type, Union
+from typing import Any, Dict, List, Literal, Mapping, Optional, Set, Union
 
 import prowlarr
 
@@ -374,14 +374,10 @@ class Socks5Proxy(Proxy):
     ]
 
 
-PROXY_TYPES: Tuple[Type[Proxy], ...] = (
-    FlaresolverrProxy,
-    HttpProxy,
-    Socks4Proxy,
-    Socks5Proxy,
-)
-
-PROXY_TYPE_MAP = {proxy_type._implementation.lower(): proxy_type for proxy_type in PROXY_TYPES}
+PROXY_TYPE_MAP = {
+    proxy_type._implementation.lower(): proxy_type  # type: ignore[attr-defined]
+    for proxy_type in (FlaresolverrProxy, HttpProxy, Socks4Proxy, Socks5Proxy)
+}
 
 ProxyType = Union[
     FlaresolverrProxy,
@@ -425,7 +421,9 @@ class ProxiesSettings(ProwlarrConfigBase):
             )
         return cls(
             definitions={
-                api_proxy["name"]: PROXY_TYPE_MAP[api_proxy.implementation.lower()]._from_remote(
+                api_proxy["name"]: PROXY_TYPE_MAP[  # type: ignore[attr-defined]
+                    api_proxy.implementation.lower()
+                ]._from_remote(
                     tag_ids=tag_ids,
                     remote_attrs=api_proxy.to_dict(),
                 )
@@ -460,7 +458,7 @@ class ProxiesSettings(ProwlarrConfigBase):
         # If it does exist on the remote, attempt an an in-place modification,
         # and set the `changed` flag if modifications were made.
         for proxy_name, proxy in self.definitions.items():
-            proxy_tree = f"{tree}.definitions[{repr(proxy_name)}]"
+            proxy_tree = f"{tree}.definitions[{proxy_name!r}]"
             if proxy_name not in remote.definitions:
                 proxy._create_remote(
                     tree=proxy_tree,
@@ -498,7 +496,7 @@ class ProxiesSettings(ProwlarrConfigBase):
         # the existence of the unmanaged definition.
         for proxy_name, proxy in remote.definitions.items():
             if proxy_name not in self.definitions:
-                proxy_tree = f"{tree}.definitions[{repr(proxy_name)}]"
+                proxy_tree = f"{tree}.definitions[{proxy_name!r}]"
                 if self.delete_unmanaged:
                     logger.info("%s: (...) -> (deleted)", proxy_tree)
                     proxy._delete_remote(

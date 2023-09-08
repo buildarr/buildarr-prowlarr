@@ -22,7 +22,7 @@ from __future__ import annotations
 import itertools
 
 from logging import getLogger
-from typing import Any, Dict, Iterable, List, Literal, Mapping, Optional, Set, Tuple, Type, Union
+from typing import Any, Dict, Iterable, List, Literal, Mapping, Optional, Set, Union
 
 import prowlarr
 
@@ -520,19 +520,17 @@ class WhisparrApplication(Application):
     _remote_map: List[RemoteMapEntry] = [("api_key", "apiKey", {"is_field": True})]
 
 
-APPLICATION_TYPES: Tuple[Type[Application], ...] = (
-    LazylibrarianApplication,
-    LidarrApplication,
-    MylarApplication,
-    RadarrApplication,
-    ReadarrApplication,
-    SonarrApplication,
-    WhisparrApplication,
-)
-
 APPLICATION_TYPE_MAP = {
-    application_type._implementation.lower(): application_type
-    for application_type in APPLICATION_TYPES
+    application_type._implementation.lower(): application_type  # type: ignore[attr-defined]
+    for application_type in (
+        LazylibrarianApplication,
+        LidarrApplication,
+        MylarApplication,
+        RadarrApplication,
+        ReadarrApplication,
+        SonarrApplication,
+        WhisparrApplication,
+    )
 }
 
 ApplicationType = Union[
@@ -650,7 +648,7 @@ class ApplicationsSettings(ProwlarrConfigBase):
             )
         return cls(
             definitions={
-                api_application.name: APPLICATION_TYPE_MAP[
+                api_application.name: APPLICATION_TYPE_MAP[  # type: ignore[attr-defined]
                     api_application.implementation.lower()
                 ]._from_remote(
                     category_ids=category_ids,
@@ -698,7 +696,7 @@ class ApplicationsSettings(ProwlarrConfigBase):
         # If it does exist on the remote, attempt an an in-place modification,
         # and set the `changed` flag if modifications were made.
         for application_name, application in self.definitions.items():
-            application_tree = f"{tree}.definitions[{repr(application_name)}]"
+            application_tree = f"{tree}.definitions[{application_name!r}]"
             local_application = application._resolve()
             if application_name not in remote.definitions:
                 local_application._create_remote(
@@ -739,7 +737,7 @@ class ApplicationsSettings(ProwlarrConfigBase):
         # the existence of the unmanaged definition.
         for application_name, application in remote.definitions.items():
             if application_name not in self.definitions:
-                application_tree = f"{tree}.definitions[{repr(application_name)}]"
+                application_tree = f"{tree}.definitions[{application_name!r}]"
                 if self.delete_unmanaged:
                     logger.info("%s: (...) -> (deleted)", application_tree)
                     application._delete_remote(

@@ -25,7 +25,6 @@ from getpass import getpass
 from urllib.parse import urlparse
 
 import click
-import click_params  # type: ignore[import]
 
 from .config import ProwlarrInstanceConfig
 from .manager import ProwlarrManager
@@ -49,7 +48,7 @@ def prowlarr():
         "The configuration is dumped to standard output in Buildarr-compatible YAML format."
     ),
 )
-@click.argument("url", type=click_params.URL)
+@click.argument("url", type=click.STRING)
 @click.option(
     "-k",
     "--api-key",
@@ -77,12 +76,20 @@ def dump_config(url: str, api_key: str) -> int:
     click.echo(
         ProwlarrManager()
         .from_remote(
-            instance_config=ProwlarrInstanceConfig(hostname=hostname, port=port, protocol=protocol),
+            instance_config=ProwlarrInstanceConfig(
+                **{  # type: ignore[arg-type]
+                    "hostname": hostname,
+                    "port": port,
+                    "protocol": protocol,
+                },
+            ),
             secrets=ProwlarrSecrets(
-                hostname=hostname,
-                port=port,
-                protocol=protocol,
-                api_key=api_key,
+                **{  # type: ignore[arg-type]
+                    "hostname": hostname,
+                    "port": port,
+                    "protocol": protocol,
+                    "api_key": api_key,
+                },
             ),
         )
         .yaml(),

@@ -22,7 +22,7 @@ from __future__ import annotations
 import itertools
 
 from logging import getLogger
-from typing import Dict, Tuple, Type, Union
+from typing import Dict, Union
 
 import prowlarr
 
@@ -32,7 +32,6 @@ from typing_extensions import Annotated, Self
 from ....api import prowlarr_api_client
 from ....secrets import ProwlarrSecrets
 from ...types import ProwlarrConfigBase
-from .base import DownloadClient
 from .torrent import (
     Aria2DownloadClient,
     DelugeDownloadClient,
@@ -57,29 +56,27 @@ from .usenet import (
 
 logger = getLogger(__name__)
 
-DOWNLOADCLIENT_TYPES: Tuple[Type[DownloadClient], ...] = (
-    Aria2DownloadClient,
-    DelugeDownloadClient,
-    DownloadstationTorrentDownloadClient,
-    DownloadstationUsenetDownloadClient,
-    FloodDownloadClient,
-    HadoukenDownloadClient,
-    NzbgetDownloadClient,
-    NzbvortexDownloadClient,
-    PneumaticDownloadClient,
-    QbittorrentDownloadClient,
-    RtorrentDownloadClient,
-    SabnzbdDownloadClient,
-    TorrentBlackholeDownloadClient,
-    TransmissionDownloadClient,
-    UsenetBlackholeDownloadClient,
-    UtorrentDownloadClient,
-    VuzeDownloadClient,
-)
-
 DOWNLOADCLIENT_TYPE_MAP = {
-    downloadclient_type._implementation.lower(): downloadclient_type
-    for downloadclient_type in DOWNLOADCLIENT_TYPES
+    downloadclient_type._implementation.lower(): downloadclient_type  # type: ignore[attr-defined]
+    for downloadclient_type in (
+        Aria2DownloadClient,
+        DelugeDownloadClient,
+        DownloadstationTorrentDownloadClient,
+        DownloadstationUsenetDownloadClient,
+        FloodDownloadClient,
+        HadoukenDownloadClient,
+        NzbgetDownloadClient,
+        NzbvortexDownloadClient,
+        PneumaticDownloadClient,
+        QbittorrentDownloadClient,
+        RtorrentDownloadClient,
+        SabnzbdDownloadClient,
+        TorrentBlackholeDownloadClient,
+        TransmissionDownloadClient,
+        UsenetBlackholeDownloadClient,
+        UtorrentDownloadClient,
+        VuzeDownloadClient,
+    )
 }
 
 DownloadClientType = Union[
@@ -183,7 +180,7 @@ class ProwlarrDownloadClientsSettings(ProwlarrConfigBase):
             )
         return cls(
             definitions={
-                api_downloadclient.name: DOWNLOADCLIENT_TYPE_MAP[
+                api_downloadclient.name: DOWNLOADCLIENT_TYPE_MAP[  # type: ignore[attr-defined]
                     api_downloadclient.implementation.lower()
                 ]._from_remote(
                     category_ids=category_ids,
@@ -231,7 +228,7 @@ class ProwlarrDownloadClientsSettings(ProwlarrConfigBase):
         # If it does exist on the remote, attempt an an in-place modification,
         # and set the `changed` flag if modifications were made.
         for downloadclient_name, downloadclient in self.definitions.items():
-            downloadclient_tree = f"{tree}.definitions[{repr(downloadclient_name)}]"
+            downloadclient_tree = f"{tree}.definitions[{downloadclient_name!r}]"
             if downloadclient_name not in remote.definitions:
                 downloadclient._create_remote(
                     tree=downloadclient_tree,
@@ -273,7 +270,7 @@ class ProwlarrDownloadClientsSettings(ProwlarrConfigBase):
         # the existence of the unmanaged definition.
         for downloadclient_name, downloadclient in remote.definitions.items():
             if downloadclient_name not in self.definitions:
-                downloadclient_tree = f"{tree}.definitions[{repr(downloadclient_name)}]"
+                downloadclient_tree = f"{tree}.definitions[{downloadclient_name!r}]"
                 if self.delete_unmanaged:
                     logger.info("%s: (...) -> (deleted)", downloadclient_tree)
                     downloadclient._delete_remote(

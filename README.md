@@ -16,10 +16,13 @@ When using Buildarr as a [standalone application](https://buildarr.github.io/ins
 $ pip install buildarr buildarr-prowlarr
 ```
 
-If you are linking a Prowlarr instance with another Buildarr-configured Sonarr instance, use the `sonarr` extra to also install a compatible version of the Sonarr plugin.
+If you are linking a Prowlarr instance with another Buildarr-configured application, specify the following extras to also install a compatible version of the corresponding plugins:
+
+* `sonarr` (for the Sonarr TV show PVR)
+* `radarr` (for the Radarr movie PVR)
 
 ```bash
-$ pip install buildarr buildarr-prowlarr[sonarr]
+$ pip install buildarr buildarr-prowlarr[sonarr,radarr]
 ```
 
 When using Buildarr as a [Docker container](https://buildarr.github.io/installation/#docker), the Prowlarr plugin is bundled with the official container (`callum027/buildarr`), so there is no need to install it separately.

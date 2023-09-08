@@ -11,9 +11,9 @@ version = "0.2.0"
 description = "Prowlarr indexer manager plugin for Buildarr"
 authors = ["Callum Dickinson <callum.dickinson.nz@gmail.com>"]
 license = "GPL-3.0-or-later"
-homepage = "https://buildarr.github.io/plugins/sonarr"
-repository = "https://github.com/buildarr/buildarr-sonarr"
-documentation = "https://buildarr.github.io/plugins/sonarr"
+homepage = "https://buildarr.github.io/plugins/prowlarr"
+repository = "https://github.com/buildarr/buildarr-prowlarr"
+documentation = "https://buildarr.github.io/plugins/prowlarr"
 keywords = [
     "buildarr",
     "prowlarr",
@@ -42,20 +42,23 @@ packages = [{include = "buildarr_prowlarr"}]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<4.0"
-prowlarr-py = ">=0.3.2,<0.4.0"
-buildarr = ">=0.5.0,<0.6.0"
+prowlarr-py = ">=0.4.1,<0.5.0"
+json5 = ">=0.9.7"
+buildarr = ">=0.5.0,<0.7.0"
 buildarr-sonarr = {version = ">=0.5.0", optional = true}
+buildarr-radarr = {version = ">=0.1.0", optional = true}
 
 [tool.poetry.group.dev.dependencies]
-black = "23.3.0"
-mypy = "1.2.0"
-types-requests = "2.28.11.17"
-mkdocs = "1.4.2"
-mkdocstrings = {extras = ["python"], version = "0.21.2"}
-ruff = "0.0.261"
+black = "23.7.0"
+mypy = "1.5.1"
+types-requests = "2.31.0.2"
+mkdocs = "1.5.2"
+mkdocstrings = {extras = ["python"], version = "0.22.0"}
+ruff = "0.0.287"
 
 [tool.poetry.extras]
 sonarr = ["buildarr-sonarr"]
+radarr = ["buildarr-radarr"]
 
 [tool.ruff]
 fix = true
@@ -94,7 +97,7 @@ extend-ignore = [
     "PLR0912",
     "PLR0913",
     "PLR0915",
-    "RUF001",
+    "RUF012",
 ]
 
 [tool.ruff.isort]

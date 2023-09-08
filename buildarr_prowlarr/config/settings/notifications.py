@@ -20,7 +20,7 @@ Prowlarr plugin notification connection configuration.
 from __future__ import annotations
 
 from logging import getLogger
-from typing import Any, Dict, List, Literal, Mapping, Optional, Set, Tuple, Type, Union
+from typing import Any, Dict, List, Literal, Mapping, Optional, Set, Union
 
 import prowlarr
 
@@ -1381,30 +1381,28 @@ class WebhookNotification(Notification):
     ]
 
 
-NOTIFICATION_TYPES: Tuple[Type[Notification], ...] = (
-    AppriseNotification,
-    BoxcarNotification,
-    CustomscriptNotification,
-    DiscordNotification,
-    EmailNotification,
-    GotifyNotification,
-    JoinNotification,
-    MailgunNotification,
-    NotifiarrNotification,
-    NtfyNotification,
-    ProwlNotification,
-    PushbulletNotification,
-    PushoverNotification,
-    SendgridNotification,
-    SlackNotification,
-    TelegramNotification,
-    TwitterNotification,
-    WebhookNotification,
-)
-
-NOTIFICATION_TYPE_MAP: Dict[str, Type[Notification]] = {
-    notification_type._implementation.lower(): notification_type
-    for notification_type in NOTIFICATION_TYPES
+NOTIFICATION_TYPE_MAP = {
+    notification_type._implementation.lower(): notification_type  # type: ignore[attr-defined]
+    for notification_type in (
+        AppriseNotification,
+        BoxcarNotification,
+        CustomscriptNotification,
+        DiscordNotification,
+        EmailNotification,
+        GotifyNotification,
+        JoinNotification,
+        MailgunNotification,
+        NotifiarrNotification,
+        NtfyNotification,
+        ProwlNotification,
+        PushbulletNotification,
+        PushoverNotification,
+        SendgridNotification,
+        SlackNotification,
+        TelegramNotification,
+        TwitterNotification,
+        WebhookNotification,
+    )
 }
 
 NotificationType = Union[
@@ -1458,7 +1456,7 @@ class ProwlarrNotificationsSettings(ProwlarrConfigBase):
             )
         return cls(
             definitions={
-                api_notification.name: NOTIFICATION_TYPE_MAP[
+                api_notification.name: NOTIFICATION_TYPE_MAP[  # type: ignore[attr-defined]
                     api_notification.implementation.lower()
                 ]._from_remote(
                     tag_ids=tag_ids,
@@ -1496,7 +1494,7 @@ class ProwlarrNotificationsSettings(ProwlarrConfigBase):
         # If it does exist on the remote, attempt an an in-place modification,
         # and set the `changed` flag if modifications were made.
         for notification_name, notification in self.definitions.items():
-            notification_tree = f"{tree}.definitions[{repr(notification_name)}]"
+            notification_tree = f"{tree}.definitions[{notification_name!r}]"
             if notification_name not in remote.definitions:
                 notification._create_remote(
                     tree=notification_tree,
@@ -1534,7 +1532,7 @@ class ProwlarrNotificationsSettings(ProwlarrConfigBase):
         # the existence of the unmanaged definition.
         for notification_name, notification in remote.definitions.items():
             if notification_name not in self.definitions:
-                notification_tree = f"{tree}.definitions[{repr(notification_name)}]"
+                notification_tree = f"{tree}.definitions[{notification_name!r}]"
                 if self.delete_unmanaged:
                     logger.info("%s: (...) -> (deleted)", notification_tree)
                     notification._delete_remote(

@@ -296,9 +296,11 @@ class Indexer(ProwlarrConfigBase):
                 fields[name] = value
         # Construct the local configuration object from the parsed values.
         return cls(
-            **common_attrs,
-            fields=fields,
-            secret_fields=secret_fields,
+            **{
+                **common_attrs,
+                "fields": fields,
+                "secret_fields": secret_fields,
+            },
         )
 
     def _create_remote(
@@ -687,7 +689,7 @@ class IndexersSettings(ProwlarrConfigBase):
         # If it does exist on the remote, attempt an an in-place modification,
         # and set the `changed` flag if modifications were made.
         for indexer_name, indexer in self.definitions.items():
-            indexer_tree = f"{tree}.definitions[{repr(indexer_name)}]"
+            indexer_tree = f"{tree}.definitions[{indexer_name!r}]"
             if indexer_name not in remote.definitions:
                 indexer._create_remote(
                     tree=indexer_tree,
@@ -729,7 +731,7 @@ class IndexersSettings(ProwlarrConfigBase):
         # the existence of the unmanaged definition.
         for indexer_name, indexer in remote.definitions.items():
             if indexer_name not in self.definitions:
-                indexer_tree = f"{tree}.definitions[{repr(indexer_name)}]"
+                indexer_tree = f"{tree}.definitions[{indexer_name!r}]"
                 if self.delete_unmanaged:
                     logger.info("%s: (...) -> (deleted)", indexer_tree)
                     indexer._delete_remote(secrets=secrets, indexer_id=indexer_ids[indexer_name])
