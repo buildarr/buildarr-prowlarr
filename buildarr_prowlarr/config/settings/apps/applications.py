@@ -333,6 +333,12 @@ class MylarApplication(Application):
 class RadarrApplication(Application):
     """
     Add a [Radarr](https://radarr.video) instance to sync with Prowlarr.
+
+    !!! note
+
+        There is a [Radarr plugin for Buildarr](https://buidarr.github.io/plugins/radarr)
+        that can be used to link Radarr instances with Prowlarr using the `instance_name`
+        attribute.
     """
 
     type: Literal["radarr"] = "radarr"
@@ -340,9 +346,18 @@ class RadarrApplication(Application):
     Type value associated with this kind of application.
     """
 
-    api_key: ArrApiKey
+    instance_name: Optional[InstanceName] = Field(None, plugin="radarr")
     """
-    API key used to access the target instance.
+    The name of the Radarr instance within Buildarr, if adding
+    a Buildarr-defined Radarr instance to this Prowlarr instance.
+    """
+
+    api_key: Optional[ArrApiKey] = None
+    """
+    API key used to access the target Radarr instance.
+
+    If a Radarr instance managed by Buildarr is not referenced using `instance_name`,
+    this attribute is required.
     """
 
     sync_categories: Set[LowerCaseNonEmptyStr] = {
@@ -362,6 +377,25 @@ class RadarrApplication(Application):
 
     _implementation: str = "Radarr"
     _remote_map: List[RemoteMapEntry] = [("api_key", "apiKey", {"is_field": True})]
+
+    @validator("api_key")
+    def validate_api_key(
+        cls,
+        value: Optional[SecretStr],
+        values: Dict[str, Any],
+    ) -> Optional[SecretStr]:
+        if not values.get("instance_name", None) and not value:
+            raise ValueError("required when 'instance_name' is not defined")
+        return value
+
+    def _resolve(self) -> Self:
+        if self.instance_name:
+            resolved = self.copy(deep=True)
+            resolved.api_key = state.secrets.radarr[  # type: ignore[attr-defined]
+                self.instance_name
+            ].api_key.get_secret_value()
+            return resolved
+        return self
 
 
 class ReadarrApplication(Application):
@@ -409,7 +443,7 @@ class SonarrApplication(Application):
 
     type: Literal["sonarr"] = "sonarr"
     """
-    Type value associated with this kind of application
+    Type value associated with this kind of application.
     """
 
     instance_name: Optional[InstanceName] = Field(None, plugin="sonarr")

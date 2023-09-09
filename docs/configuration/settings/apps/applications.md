@@ -50,6 +50,7 @@
     options:
       members:
         - type
+        - instance_name
         - api_key
         - sync_categories
 
