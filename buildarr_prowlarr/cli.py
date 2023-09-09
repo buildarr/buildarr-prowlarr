@@ -22,6 +22,7 @@ from __future__ import annotations
 import functools
 
 from getpass import getpass
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 import click
@@ -29,6 +30,9 @@ import click
 from .config import ProwlarrInstanceConfig
 from .manager import ProwlarrManager
 from .secrets import ProwlarrSecrets
+
+if TYPE_CHECKING:
+    from urllib.parse import ParseResult as Url
 
 HOSTNAME_PORT_TUPLE_LENGTH = 2
 
@@ -48,7 +52,7 @@ def prowlarr():
         "The configuration is dumped to standard output in Buildarr-compatible YAML format."
     ),
 )
-@click.argument("url", type=click.STRING)
+@click.argument("url", type=urlparse)
 @click.option(
     "-k",
     "--api-key",
@@ -57,15 +61,14 @@ def prowlarr():
     default=functools.partial(getpass, "Prowlarr instance API key: "),
     help="API key of the Prowlarr instance. The user will be prompted if undefined.",
 )
-def dump_config(url: str, api_key: str) -> int:
+def dump_config(url: Url, api_key: str) -> int:
     """
     Dump configuration from a remote Prowlarr instance.
     The configuration is dumped to standard output in Buildarr-compatible YAML format.
     """
 
-    url_obj = urlparse(url)
-    protocol = url_obj.scheme
-    hostname_port = url_obj.netloc.split(":", 1)
+    protocol = url.scheme
+    hostname_port = url.netloc.split(":", 1)
     hostname = hostname_port[0]
     port = (
         int(hostname_port[1])
