@@ -1,5 +1,20 @@
 # Release Notes (Buildarr Prowlarr Plugin)
 
+## [v0.3.1](https://github.com/buildarr/buildarr-prowlarr/releases/tag/v0.3.1) - 2023-09-09
+
+This release implements instance links to Radarr instances in application definitions, using the `instance_name` attribute, similar to the existing Sonarr instance links.
+
+This takes advantage of the new [Radarr plugin for Buildarr](https://buildarr.github.io/plugins/radarr), and allows users to add Radarr instances to Prowlarr configuration without having to explicitly pass the API key (as long as the Radarr instance itself is also configured by Buildarr).
+
+### Added
+
+* Implement instance links with Radarr instances ([#20](https://github.com/buildarr/buildarr-prowlarr/pull/20))
+
+### Changed
+
+* Directly parse URL in the CLI command ([#21](https://github.com/buildarr/buildarr-prowlarr/pull/21))
+
+
 ## [v0.3.0](https://github.com/buildarr/buildarr-prowlarr/releases/tag/v0.3.0) - 2023-09-09
 
 This updates the Prowlarr plugin so that it is compatible with [Buildarr v0.6.0](https://buildarr.github.io/release-notes/#v060-2023-09-02).
