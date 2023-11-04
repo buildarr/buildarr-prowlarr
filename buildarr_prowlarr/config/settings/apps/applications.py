@@ -484,6 +484,8 @@ class SonarrApplication(Application):
     sync_anime_standard_format_search: bool = False
     """
     Enable searching using anime standard episode numbering for the Sonarr instance.
+
+    *New in version 0.4.0.*
     """
 
     _implementation: str = "Sonarr"

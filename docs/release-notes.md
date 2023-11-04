@@ -1,5 +1,25 @@
 # Release Notes (Buildarr Prowlarr Plugin)
 
+## [v0.4.0](https://github.com/buildarr/buildarr-prowlarr/releases/tag/v0.4.0) - 2023-11-05
+
+This version changes the dependency requirements so that it now requires:
+
+* [Buildarr v0.6.1](https://buildarr.github.io/release-notes/#v061-2023-09-11) or later (to fix a bug with email handling)
+* [Sonarr plugin for Buildarr v0.5.1](https://buildarr.github.io/plugins/sonarr/release-notes/#v051-2023-09-09) or later (for Buildarr v0.6.0 support)
+
+Buildarr v0.5.0 is no longer supported.
+
+Other changes to the Prowlarr plugin for this release include:
+
+* Add support for defining and managing the `sync_anime_standard_format_search` parameter for Sonarr applications (previously unmanaged)
+* Allow category groups (e.g. `TV`, `Movies`) to be defined in `sync_categories` to allow all categories under a group for applications
+
+### Changed
+
+* Fix application profile sync category and paramater issues ([#27](https://github.com/buildarr/buildarr-prowlarr/pull/27))
+* Update Buildarr version requirements([#28](https://github.com/buildarr/buildarr-prowlarr/pull/28))
+
+
 ## [v0.3.1](https://github.com/buildarr/buildarr-prowlarr/releases/tag/v0.3.1) - 2023-09-09
 
 This release implements instance links to Radarr instances in application definitions, using the `instance_name` attribute, similar to the existing Sonarr instance links.
