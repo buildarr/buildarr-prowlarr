@@ -202,7 +202,7 @@ class Application(ProwlarrConfigBase):
         }
         set_attrs["fields"] = [
             ({**f, "value": field_values[f["name"]]} if f["name"] in field_values else f)
-            for f in api_schema["fields"]
+            for f in api_schema.to_dict()["fields"]
         ]
         remote_attrs = {"name": application_name, **api_schema, **set_attrs}
         with prowlarr_api_client(secrets=secrets) as api_client:
@@ -231,7 +231,7 @@ class Application(ProwlarrConfigBase):
                     field["name"]: field["value"] for field in set_attrs["fields"]
                 }
                 set_attrs["fields"] = [
-                    {**f, "value": field_values[f["name"]]} for f in api_schema["fields"]
+                    {**f, "value": field_values[f["name"]]} for f in api_schema.to_dict()["fields"]
                 ]
             remote_attrs = {**api_application.to_dict(), **set_attrs}
             with prowlarr_api_client(secrets=secrets) as api_client:
