@@ -703,7 +703,10 @@ class ApplicationsSettings(ProwlarrConfigBase):
         # Pull API objects and metadata required during the update operation.
         with prowlarr_api_client(secrets=secrets) as api_client:
             application_api = prowlarr.ApplicationApi(api_client)
-            api_application_schemas = application_api.list_applications_schema()
+            api_application_schemas: Dict[str, prowlarr.ApplicationResource] = {
+                api_schema.implementation: api_schema
+                for api_schema in application_api.list_applications_schema()
+            }
             api_applications = {
                 api_application.name: api_application
                 for api_application in application_api.list_applications()
