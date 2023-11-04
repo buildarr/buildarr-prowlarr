@@ -19,10 +19,8 @@ Prowlarr plugin application link settings configuration.
 
 from __future__ import annotations
 
-import itertools
-
 from logging import getLogger
-from typing import Any, Dict, Iterable, List, Literal, Mapping, Optional, Set, Union
+from typing import Any, Dict, Iterable, List, Literal, Mapping, Optional, Set, Union, cast
 
 import prowlarr
 
@@ -105,7 +103,7 @@ class Application(ProwlarrConfigBase):
     @classmethod
     def _get_base_remote_map(
         cls,
-        category_ids: Mapping[str, int],
+        api_schema: prowlarr.ApplicationResource,
         tag_ids: Mapping[str, int],
     ) -> List[RemoteMapEntry]:
         return [
@@ -117,8 +115,8 @@ class Application(ProwlarrConfigBase):
                 "syncCategories",
                 {
                     "is_field": True,
-                    "decoder": lambda v: cls._sync_categories_decoder(category_ids, v),
-                    "encoder": lambda v: cls._sync_categories_encoder(category_ids, v),
+                    "decoder": lambda v: cls._sync_categories_decoder(api_schema, v),
+                    "encoder": lambda v: cls._sync_categories_encoder(api_schema, v),
                 },
             ),
             (
@@ -134,33 +132,52 @@ class Application(ProwlarrConfigBase):
         ]
 
     @classmethod
+    def _get_sync_category_options(
+        cls,
+        api_schema: prowlarr.ApplicationResource,
+    ) -> Dict[int, str]:
+        return {
+            select_option.value: select_option.name.lower()
+            for select_option in cast(
+                List[prowlarr.SelectOption],
+                next(
+                    (
+                        f
+                        for f in cast(List[prowlarr.Field], api_schema.fields)
+                        if f.name == "syncCategories"
+                    ),
+                ).select_options,
+            )
+        }
+
+    @classmethod
     def _sync_categories_decoder(
         cls,
-        category_ids: Mapping[str, int],
+        api_schema: prowlarr.ApplicationResource,
         api_sync_categories: Iterable[int],
     ) -> Set[str]:
-        category_names = {value: key.lower() for key, value in category_ids.items()}
+        category_names = cls._get_sync_category_options(api_schema)
         return set(category_names[category_id] for category_id in api_sync_categories)
 
     @classmethod
     def _sync_categories_encoder(
         cls,
-        category_ids: Mapping[str, int],
+        api_schema: prowlarr.ApplicationResource,
         sync_categories: Set[str],
     ) -> List[int]:
-        category_ids = {key.lower(): value for key, value in category_ids.items()}
-        return sorted(category_ids[category_name.lower()] for category_name in sync_categories)
+        category_ids = {v: k for k, v in cls._get_sync_category_options(api_schema).items()}
+        return sorted(category_ids[category_name] for category_name in sync_categories)
 
     @classmethod
     def _from_remote(
         cls,
-        category_ids: Mapping[str, int],
+        api_schema: prowlarr.ApplicationResource,
         tag_ids: Mapping[str, int],
         remote_attrs: Mapping[str, Any],
     ) -> Self:
         return cls(
             **cls.get_local_attrs(
-                remote_map=cls._get_base_remote_map(category_ids, tag_ids) + cls._remote_map,
+                remote_map=cls._get_base_remote_map(api_schema, tag_ids) + cls._remote_map,
                 remote_attrs=remote_attrs,
             ),
         )
@@ -168,30 +185,17 @@ class Application(ProwlarrConfigBase):
     def _resolve(self) -> Self:
         return self
 
-    def _get_api_schema(self, schemas: List[prowlarr.IndexerResource]) -> Dict[str, Any]:
-        return {
-            k: v
-            for k, v in next(
-                s for s in schemas if s.implementation_name.lower() == self.type.lower()
-            )
-            .to_dict()
-            .items()
-            if k not in ["id", "name"]
-        }
-
     def _create_remote(
         self,
         tree: str,
         secrets: ProwlarrSecrets,
-        api_application_schemas: List[prowlarr.ApplicationResource],
-        category_ids: Mapping[str, int],
+        api_schema: prowlarr.ApplicationResource,
         tag_ids: Mapping[str, int],
         application_name: str,
     ) -> None:
-        api_schema = self._get_api_schema(api_application_schemas)
         set_attrs = self.get_create_remote_attrs(
             tree=tree,
-            remote_map=self._get_base_remote_map(category_ids, tag_ids) + self._remote_map,
+            remote_map=self._get_base_remote_map(api_schema, tag_ids) + self._remote_map,
         )
         field_values: Dict[str, Any] = {
             field["name"]: field["value"] for field in set_attrs["fields"]
@@ -211,15 +215,14 @@ class Application(ProwlarrConfigBase):
         tree: str,
         secrets: ProwlarrSecrets,
         remote: Self,
-        api_application_schemas: List[prowlarr.ApplicationResource],
-        category_ids: Mapping[str, int],
+        api_schema: prowlarr.ApplicationResource,
         tag_ids: Mapping[str, int],
         api_application: prowlarr.ApplicationResource,
     ) -> bool:
         changed, set_attrs = self.get_update_remote_attrs(
             tree=tree,
             remote=remote,
-            remote_map=self._get_base_remote_map(category_ids, tag_ids) + self._remote_map,
+            remote_map=self._get_base_remote_map(api_schema, tag_ids) + self._remote_map,
             set_unchanged=True,
         )
         if changed:
@@ -228,8 +231,7 @@ class Application(ProwlarrConfigBase):
                     field["name"]: field["value"] for field in set_attrs["fields"]
                 }
                 set_attrs["fields"] = [
-                    {**f, "value": field_values[f["name"]]}
-                    for f in self._get_api_schema(api_application_schemas)["fields"]
+                    {**f, "value": field_values[f["name"]]} for f in api_schema["fields"]
                 ]
             remote_attrs = {**api_application.to_dict(), **set_attrs}
             with prowlarr_api_client(secrets=secrets) as api_client:
@@ -494,19 +496,19 @@ class SonarrApplication(Application):
     @classmethod
     def _get_base_remote_map(
         cls,
-        category_ids: Mapping[str, int],
+        api_schema: prowlarr.ApplicationResource,
         tag_ids: Mapping[str, int],
     ) -> List[RemoteMapEntry]:
         return [
-            *super()._get_base_remote_map(category_ids, tag_ids),
+            *super()._get_base_remote_map(api_schema, tag_ids),
             ("api_key", "apiKey", {"is_field": True}),
             (
                 "anime_sync_categories",
                 "animeSyncCategories",
                 {
                     "is_field": True,
-                    "decoder": lambda v: cls._sync_categories_decoder(category_ids, v),
-                    "encoder": lambda v: cls._sync_categories_encoder(category_ids, v),
+                    "decoder": lambda v: cls._sync_categories_decoder(api_schema, v),
+                    "encoder": lambda v: cls._sync_categories_encoder(api_schema, v),
                 },
             ),
         ]
@@ -555,7 +557,7 @@ class WhisparrApplication(Application):
 
 
 APPLICATION_TYPE_MAP = {
-    application_type._implementation.lower(): application_type  # type: ignore[attr-defined]
+    application_type._implementation: application_type  # type: ignore[attr-defined]
     for application_type in (
         LazylibrarianApplication,
         LidarrApplication,
@@ -665,16 +667,12 @@ class ApplicationsSettings(ProwlarrConfigBase):
     @classmethod
     def from_remote(cls, secrets: ProwlarrSecrets) -> Self:
         with prowlarr_api_client(secrets=secrets) as api_client:
-            category_ids: Dict[str, int] = {
-                api_category.name: api_category.id
-                for api_category in itertools.chain.from_iterable(
-                    api_category_group.sub_categories
-                    for api_category_group in prowlarr.IndexerDefaultCategoriesApi(
-                        api_client,
-                    ).list_indexer_categories()
-                )
+            application_api = prowlarr.ApplicationApi(api_client)
+            api_application_schemas: Dict[str, prowlarr.ApplicationResource] = {
+                api_schema.implementation: api_schema
+                for api_schema in application_api.list_applications_schema()
             }
-            api_applications = prowlarr.ApplicationApi(api_client).list_applications()
+            api_applications = application_api.list_applications()
             tag_ids: Dict[str, int] = (
                 {tag.label: tag.id for tag in prowlarr.TagApi(api_client).list_tag()}
                 if any(api_application.tags for api_application in api_applications)
@@ -683,9 +681,9 @@ class ApplicationsSettings(ProwlarrConfigBase):
         return cls(
             definitions={
                 api_application.name: APPLICATION_TYPE_MAP[  # type: ignore[attr-defined]
-                    api_application.implementation.lower()
+                    api_application.implementation
                 ]._from_remote(
-                    category_ids=category_ids,
+                    api_schema=api_application_schemas[api_application.implementation],
                     tag_ids=tag_ids,
                     remote_attrs=api_application.to_dict(),
                 )
@@ -710,15 +708,6 @@ class ApplicationsSettings(ProwlarrConfigBase):
                 api_application.name: api_application
                 for api_application in application_api.list_applications()
             }
-            category_ids: Dict[str, int] = {
-                api_category.name: api_category.id
-                for api_category in itertools.chain.from_iterable(
-                    api_category_group.sub_categories
-                    for api_category_group in prowlarr.IndexerDefaultCategoriesApi(
-                        api_client,
-                    ).list_indexer_categories()
-                )
-            }
             tag_ids: Dict[str, int] = (
                 {tag.label: tag.id for tag in prowlarr.TagApi(api_client).list_tag()}
                 if any(application.tags for application in self.definitions.values())
@@ -736,8 +725,7 @@ class ApplicationsSettings(ProwlarrConfigBase):
                 local_application._create_remote(
                     tree=application_tree,
                     secrets=secrets,
-                    api_application_schemas=api_application_schemas,
-                    category_ids=category_ids,
+                    api_schema=api_application_schemas[application._implementation],
                     tag_ids=tag_ids,
                     application_name=application_name,
                 )
@@ -746,8 +734,7 @@ class ApplicationsSettings(ProwlarrConfigBase):
                 tree=application_tree,
                 secrets=secrets,
                 remote=remote.definitions[application_name],  # type: ignore[arg-type]
-                api_application_schemas=api_application_schemas,
-                category_ids=category_ids,
+                api_schema=api_application_schemas[application._implementation],
                 tag_ids=tag_ids,
                 api_application=api_applications[application_name],
             ):
