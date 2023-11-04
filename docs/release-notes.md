@@ -17,7 +17,7 @@ Other changes to the Prowlarr plugin for this release include:
 ### Changed
 
 * Fix application profile sync category and paramater issues ([#27](https://github.com/buildarr/buildarr-prowlarr/pull/27))
-* Update Buildarr version requirements([#28](https://github.com/buildarr/buildarr-prowlarr/pull/28))
+* Update Buildarr version requirements ([#28](https://github.com/buildarr/buildarr-prowlarr/pull/28))
 
 
 ## [v0.3.1](https://github.com/buildarr/buildarr-prowlarr/releases/tag/v0.3.1) - 2023-09-09
