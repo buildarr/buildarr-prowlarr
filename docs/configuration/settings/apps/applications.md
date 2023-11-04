@@ -73,6 +73,7 @@
         - api_key
         - sync_categories
         - anime_sync_categories
+        - sync_anime_standard_format_search
 
 ## Whisparr
 

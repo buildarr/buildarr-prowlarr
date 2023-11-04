@@ -481,6 +481,11 @@ class SonarrApplication(Application):
     Note that only categories supported by the application will actually be used.
     """
 
+    sync_anime_standard_format_search: bool = False
+    """
+    Enable searching using anime standard episode numbering for the Sonarr instance.
+    """
+
     _implementation: str = "Sonarr"
 
     @validator("api_key")
@@ -510,6 +515,11 @@ class SonarrApplication(Application):
                     "decoder": lambda v: cls._sync_categories_decoder(api_schema, v),
                     "encoder": lambda v: cls._sync_categories_encoder(api_schema, v),
                 },
+            ),
+            (
+                "sync_anime_standard_format_search",
+                "syncAnimeStandardFormatSearch",
+                {"is_field": True},
             ),
         ]
 
