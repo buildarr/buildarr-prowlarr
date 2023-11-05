@@ -1,5 +1,16 @@
 # Release Notes (Buildarr Prowlarr Plugin)
 
+## [v0.4.1](https://github.com/buildarr/buildarr-prowlarr/releases/tag/v0.4.1) - 2023-11-05
+
+This release fixes the following issues:
+
+* Fix indexer URL handling, so indexers with explicitly defined base URLs (instead of using the default) can be managed
+
+### Changed
+
+* Fix indexer URL field handling ([#31](https://github.com/buildarr/buildarr-prowlarr/pull/31))
+
+
 ## [v0.4.0](https://github.com/buildarr/buildarr-prowlarr/releases/tag/v0.4.0) - 2023-11-05
 
 This version changes the dependency requirements so that it now requires:
