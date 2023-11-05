@@ -507,6 +507,9 @@ class Indexer(ProwlarrConfigBase):
             # If the field type is `select` (an enumeration), encode the enumeration name
             # back into its raw API value case insensitively, for both local and remote values.
             if field["type"] == "select" and field["value"] is not None:
+                # URLs are directly set as the value of the field, instead of using Select Options.
+                # `indexerUrls` is available as metadata on the indexer type, and the user
+                # selects from one of the available URLs.
                 if field.get("selectOptionsProviderAction", None) == "getUrls":
                     pass
                 else:
