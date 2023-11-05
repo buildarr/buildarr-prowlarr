@@ -508,9 +508,8 @@ class Indexer(ProwlarrConfigBase):
             # back into its raw API value case insensitively, for both local and remote values.
             if field["type"] == "select" and field["value"] is not None:
                 if field.get("selectOptionsProviderAction", None) == "getUrls":
-                    local_raw_value = api_schema["indexerUrls"].index(local_raw_value)
-                    remote_raw_value = api_schema["indexerUrls"].index(remote_raw_value)
-                elif "selectOptions" in field:
+                    pass
+                else:
                     case_insensitive = True
                     for option in field["selectOptions"]:
                         if option["name"].lower() == local_raw_value.lower():
