@@ -273,11 +273,12 @@ class Indexer(ProwlarrConfigBase):
             # If the field is of type `select` (an enumeration), instead of
             # exposing the raw values, use the names associated with them
             # to represent the value in the local configuration.
-            # If the enumeration uses the indexer URLs instead of defined names,
-            # handle that so the URLs are retrieved properly.
             if field["type"] == "select" and field["value"] is not None:
+                # URLs are directly set as the value of the field, instead of using Select Options.
+                # `indexerUrls` is available as metadata on the indexer type, and the user
+                # selects from one of the available URLs.
                 if field.get("selectOptionsProviderAction", None) == "getUrls":
-                    value: Any = remote_attrs["indexerUrls"][field["value"]]
+                    value: Any = field["value"]
                 else:
                     try:
                         value = field["selectOptions"][field["value"]]["name"]
@@ -369,25 +370,24 @@ class Indexer(ProwlarrConfigBase):
             # so is the regularly set value and format value: decode them to their
             # string representation.
             if field["type"] == "select" and raw_value is not None:
-                if isinstance(raw_value, str):
-                    if field.get("selectOptionsProviderAction", None) == "getUrls":
-                        raw_value = api_schema["indexerUrls"].index(raw_value)
-                    elif "selectOptions" in field:
-                        for option in field["selectOptions"]:
-                            if option["name"].lower() == raw_value.lower():
-                                raw_value = option["value"]
-                                break
-                        else:
-                            raise ValueError(
-                                f"Invalid field value '{raw_value}' "
-                                "(expected values: "
-                                f"{', '.join(repr(f['name']) for f in field['selectOptions'])}"
-                                ")",
-                            )
-                elif field.get("selectOptionsProviderAction", None) == "getUrls":
-                    value = api_schema["indexerUrls"][raw_value]
-                    format_value = repr(value)
-                elif "selectOptions" in field:
+                # URLs are directly set as the value of the field, instead of using Select Options.
+                # `indexerUrls` is available as metadata on the indexer type, and the user
+                # selects from one of the available URLs.
+                if field.get("selectOptionsProviderAction", None) == "getUrls":
+                    pass
+                elif isinstance(raw_value, str):
+                    for option in field["selectOptions"]:
+                        if option["name"].lower() == raw_value.lower():
+                            raw_value = option["value"]
+                            break
+                    else:
+                        raise ValueError(
+                            f"Invalid field value '{raw_value}' "
+                            "(expected values: "
+                            f"{', '.join(repr(f['name']) for f in field['selectOptions'])}"
+                            ")",
+                        )
+                else:
                     for option in field["selectOptions"]:
                         if option["value"] == raw_value:
                             value = option["name"]
