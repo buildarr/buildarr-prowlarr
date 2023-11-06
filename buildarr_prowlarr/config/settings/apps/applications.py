@@ -339,7 +339,7 @@ class RadarrApplication(Application):
 
     !!! note
 
-        There is a [Radarr plugin for Buildarr](https://buidarr.github.io/plugins/radarr)
+        There is a [Radarr plugin for Buildarr](https://buildarr.github.io/plugins/radarr)
         that can be used to link Radarr instances with Prowlarr using the `instance_name`
         attribute.
     """
@@ -439,7 +439,7 @@ class SonarrApplication(Application):
 
     !!! note
 
-        There is a [Sonarr plugin for Buildarr](https://buidarr.github.io/plugins/sonarr)
+        There is a [Sonarr plugin for Buildarr](https://buildarr.github.io/plugins/sonarr)
         that can be used to link Sonarr instances with Prowlarr using the `instance_name`
         attribute.
     """
