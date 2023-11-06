@@ -1,5 +1,30 @@
 # Release Notes (Buildarr Prowlarr Plugin)
 
+## [v0.4.2](https://github.com/buildarr/buildarr-prowlarr/releases/tag/v0.4.2) - 2023-11-07
+
+This release adds support for the `external` authentication method for Prowlarr, and makes it possible for Buildarr to manage Prowlarr instances configured to use the `external` authentication method.
+
+This authentication method is usually only accessible by manually modifying the Prowlarr configuration file, but Buildarr makes it possible to configure it automatically.
+
+The following issues have also been fixed:
+
+* Fix a regression in the previous release where new application definitions could not be created
+* Remove support for the `none` authentication method, no longer usable in Prowlarr v1.0 and later
+
+### Added
+
+* Add support for external authentication ([#37](https://github.com/buildarr/buildarr-prowlarr/pull/37))
+
+### Changed
+
+* FIx creating application definitions ([#39](https://github.com/buildarr/buildarr-prowlarr/pull/39))
+* Fix Sonarr/Radarr plugin links in docs ([#40](https://github.com/buildarr/buildarr-prowlarr/pull/40))
+
+### Removed
+
+* Remove support for no authentication ([#38](https://github.com/buildarr/buildarr-prowlarr/pull/38))
+
+
 ## [v0.4.1](https://github.com/buildarr/buildarr-prowlarr/releases/tag/v0.4.1) - 2023-11-05
 
 This release fixes the following issues:
