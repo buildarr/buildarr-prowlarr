@@ -206,7 +206,7 @@ class Application(ProwlarrConfigBase):
         ]
         api_schema_dict = api_schema.to_dict()
         logger.info("api_schema_dict = %s", api_schema_dict)
-        remote_attrs = {"name": application_name, **api_schema_dict, **set_attrs}
+        remote_attrs = {**api_schema_dict, "name": application_name, **set_attrs}
         with prowlarr_api_client(secrets=secrets) as api_client:
             prowlarr.ApplicationApi(api_client).create_applications(
                 application_resource=prowlarr.ApplicationResource.from_dict(remote_attrs),
