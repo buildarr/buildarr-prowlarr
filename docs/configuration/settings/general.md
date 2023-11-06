@@ -51,7 +51,7 @@ Take care when changing these settings.
     options:
       members:
         - authentication
-        - authenticaion_required
+        - authentication_required
         - username
         - password
         - certificate_validation

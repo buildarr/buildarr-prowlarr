@@ -39,7 +39,6 @@ class AuthenticationMethod(BaseEnum):
     Prowlarr authentication method.
     """
 
-    none = "none"
     basic = "basic"
     form = "forms"
     external = "external"
@@ -227,16 +226,23 @@ class SecurityGeneralSettings(GeneralSettings):
     Prowlarr instance security (authentication) settings.
     """
 
-    authentication: AuthenticationMethod = AuthenticationMethod.none
+    authentication: AuthenticationMethod = AuthenticationMethod.form
     """
     Authentication method for logging into Prowlarr.
-    By default, do not require authentication.
 
     Values:
 
-    * `none` - No authentication
     * `basic` - Authentication using HTTP basic auth (browser popup)
-    * `form` - Authentication using a login page
+    * `form`/`forms` - Authentication using a login page
+    * `external` - External authentication using a reverse proxy (set to disable authentication)
+
+    !!! warning
+
+        When the authentication method is set to `external`,
+        **authentication is disabled within Prowlarr itself.**
+
+        **Make sure access to Prowlarr is secured**, either by using a reverse proxy with
+        forward authentication configured, or not exposing Prowlarr to the public Internet.
 
     Requires a restart of Prowlarr to take effect.
     """
@@ -318,8 +324,8 @@ class SecurityGeneralSettings(GeneralSettings):
         """
         Enforce the following constraints on the validated attributes:
 
-        * If `authentication` is `none`, set the attribute value to `None`.
-        * If `authentication` is a value other than `none` (i.e. require authentication),
+        * If `authentication` is `external`, set the attribute value to `None`.
+        * If `authentication` is a value other than `external` (i.e. require authentication),
           ensure that the attribute set to a value other than `None`.
 
         This will apply to both the local Buildarr configuration and
@@ -335,10 +341,10 @@ class SecurityGeneralSettings(GeneralSettings):
         Returns:
             Validated attribute value
         """
-        if values["authentication"] == AuthenticationMethod.none:
+        if values["authentication"] == AuthenticationMethod.external:
             return None
         elif not value:
-            raise ValueError("required when 'authentication' is not set to 'none'")
+            raise ValueError("required when 'authentication' is not set to 'external'")
         return value
 
 
