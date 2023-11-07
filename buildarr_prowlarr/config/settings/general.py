@@ -26,7 +26,7 @@ import prowlarr
 
 from buildarr.config import RemoteMapEntry
 from buildarr.types import BaseEnum, NonEmptyStr, Password, Port
-from pydantic import Field, SecretStr, validator
+from pydantic import Field, SecretStr
 from typing_extensions import Self
 
 from ...api import prowlarr_api_client
@@ -314,38 +314,6 @@ class SecurityGeneralSettings(GeneralSettings):
         ),
         ("certificate_validation", "certificateValidation", {}),
     ]
-
-    @validator("username", "password")
-    def required_when_auth_enabled(
-        cls,
-        value: Optional[str],
-        values: Dict[str, Any],
-    ) -> Optional[str]:
-        """
-        Enforce the following constraints on the validated attributes:
-
-        * If `authentication` is `external`, set the attribute value to `None`.
-        * If `authentication` is a value other than `external` (i.e. require authentication),
-          ensure that the attribute set to a value other than `None`.
-
-        This will apply to both the local Buildarr configuration and
-        the remote Prowlarr instance configuration.
-
-        Args:
-            value (Optional[str]): Value to validate
-            values (Dict[str, Any]): Configuration attributes
-
-        Raises:
-            ValueError: If the attribute is required but empty
-
-        Returns:
-            Validated attribute value
-        """
-        if values["authentication"] == AuthenticationMethod.external:
-            return None
-        elif not value:
-            raise ValueError("required when 'authentication' is not set to 'external'")
-        return value
 
 
 class ProxyGeneralSettings(GeneralSettings):
