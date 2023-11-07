@@ -109,7 +109,7 @@ Note that these documents do not show how you *should* configure a Prowlarr inst
 Buildarr is capable of dumping a running Prowlarr instance's configuration.
 
 ```bash
-$ buildarr prowlarr dump-config http://localhost:8989 > prowlarr.yml
+$ buildarr prowlarr dump-config http://localhost:9696 > prowlarr.yml
 Prowlarr instance API key: <Paste API key here>
 ```
 
