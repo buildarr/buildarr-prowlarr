@@ -1,5 +1,16 @@
 # Release Notes (Buildarr Prowlarr Plugin)
 
+## [v0.4.3](https://github.com/buildarr/buildarr-prowlarr/releases/tag/v0.4.3) - 2023-11-07
+
+This release fixes the following issues:
+
+* Fix a username/password related parsing error when the authentication method is not explicitly defined in the Buildarr configuration
+
+### Changed
+
+* Remove validation for username/password ([#44](https://github.com/buildarr/buildarr-prowlarr/pull/44))
+
+
 ## [v0.4.2](https://github.com/buildarr/buildarr-prowlarr/releases/tag/v0.4.2) - 2023-11-07
 
 This release adds support for the `external` authentication method for Prowlarr, and makes it possible for Buildarr to manage Prowlarr instances configured to use the `external` authentication method.
