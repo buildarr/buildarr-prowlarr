@@ -24,12 +24,11 @@ from typing import List
 import prowlarr
 
 from buildarr.config import RemoteMapEntry
-from buildarr.types import BaseEnum
+from buildarr.types import BaseEnum, LowerCaseNonEmptyStr
 from typing_extensions import Self
 
 from ...api import prowlarr_api_client
 from ...secrets import ProwlarrSecrets
-from ...types import LowerCaseStr
 from ..types import ProwlarrConfigBase
 
 
@@ -196,7 +195,7 @@ class ProwlarrUISettings(ProwlarrConfigBase):
     """
 
     # Language
-    ui_language: LowerCaseStr = "en"  # type: ignore[assignment]
+    ui_language: LowerCaseNonEmptyStr = "en"  # type: ignore[assignment]
     """
     The display language for the Prowlarr UI.
 

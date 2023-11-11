@@ -26,13 +26,12 @@ from typing import Any, Dict, List, Mapping, Optional, Set
 import prowlarr
 
 from buildarr.config import RemoteMapEntry
-from buildarr.types import NonEmptyStr, Password
+from buildarr.types import LowerCaseNonEmptyStr, NonEmptyStr, Password
 from pydantic import Field, validator
 from typing_extensions import Annotated, Self
 
 from ....api import prowlarr_api_client
 from ....secrets import ProwlarrSecrets
-from ....types import LowerCaseNonEmptyStr
 from ....util import zulu_datetime_format
 from ...types import ProwlarrConfigBase
 

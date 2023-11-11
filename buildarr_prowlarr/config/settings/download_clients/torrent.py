@@ -23,10 +23,9 @@ from logging import getLogger
 from typing import Any, Dict, List, Literal, Mapping, Optional, Set
 
 from buildarr.config import RemoteMapEntry
-from buildarr.types import BaseEnum, NonEmptyStr, Password, Port
+from buildarr.types import BaseEnum, LowerCaseNonEmptyStr, NonEmptyStr, Password, Port
 from pydantic import validator
 
-from ....types import LowerCaseNonEmptyStr
 from .base import DownloadClient
 
 logger = getLogger(__name__)
