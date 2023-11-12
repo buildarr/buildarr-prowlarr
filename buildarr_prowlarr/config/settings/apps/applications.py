@@ -394,9 +394,9 @@ class RadarrApplication(Application):
     def _resolve(self) -> Self:
         if self.instance_name:
             resolved = self.copy(deep=True)
-            resolved.api_key = (  # type: ignore[attr-defined]
-                state.instance_secrets["radarr"][self.instance_name].api_key.get_secret_value()
-            )
+            resolved.api_key = state.instance_secrets["radarr"][  # type: ignore[attr-defined]
+                self.instance_name
+            ].api_key.get_secret_value()
             return resolved
         return self
 
@@ -529,9 +529,9 @@ class SonarrApplication(Application):
     def _resolve(self) -> Self:
         if self.instance_name:
             resolved = self.copy(deep=True)
-            resolved.api_key = (  # type: ignore[attr-defined]
-                state.instance_secrets["sonarr"][self.instance_name].api_key.get_secret_value()
-            )
+            resolved.api_key = state.instance_secrets["sonarr"][  # type: ignore[attr-defined]
+                self.instance_name
+            ].api_key.get_secret_value()
             return resolved
         return self
 
