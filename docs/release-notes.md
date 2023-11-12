@@ -2,7 +2,7 @@
 
 ## [v0.5.0](https://github.com/buildarr/buildarr-prowlarr/releases/tag/v0.5.0) - 2023-11-12
 
-This updates the Sonarr plugin so that it is compatible with [Buildarr v0.7.0](https://buildarr.github.io/release-notes/#v070-2023-11-12).
+This updates the Prowlarr plugin so that it is compatible with [Buildarr v0.7.0](https://buildarr.github.io/release-notes/#v070-2023-11-12).
 
 ### Changed
 
