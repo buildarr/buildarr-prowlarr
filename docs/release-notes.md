@@ -6,7 +6,7 @@ This updates the Sonarr plugin so that it is compatible with [Buildarr v0.7.0](h
 
 ### Changed
 
-* Add Buildarr v0.7.0 support ([#48](https://github.com/buildarr/buildarr-sonarr/pull/48))
+* Add Buildarr v0.7.0 support ([#48](https://github.com/buildarr/buildarr-prowlarr/pull/48))
 
 
 ## [v0.4.3](https://github.com/buildarr/buildarr-prowlarr/releases/tag/v0.4.3) - 2023-11-07
