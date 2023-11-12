@@ -11,7 +11,7 @@ version = "0.5.0"
 description = "Prowlarr indexer manager plugin for Buildarr"
 authors = ["Callum Dickinson <callum.dickinson.nz@gmail.com>"]
 license = "GPL-3.0-or-later"
-homepage = "https://buildarr.github.io/plugins/prowlarr"
+homepage = "https://buildarr.github.io"
 repository = "https://github.com/buildarr/buildarr-prowlarr"
 documentation = "https://buildarr.github.io/plugins/prowlarr"
 keywords = [
@@ -36,6 +36,10 @@ classifiers = [
 ]
 readme = "README.md"
 packages = [{include = "buildarr_prowlarr"}]
+
+[tool.poetry.urls]
+"Changes" = "https://buildarr.github.io/plugins/prowlarr/release-notes"
+"Issue Tracker" = "https://github.com/buildarr/buildarr-prowlarr/issues"
 
 [tool.poetry.plugins."buildarr.plugins"]
 "prowlarr" = "buildarr_prowlarr.plugin:ProwlarrPlugin"
