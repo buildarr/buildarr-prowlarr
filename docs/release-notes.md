@@ -1,5 +1,24 @@
 # Release Notes (Buildarr Prowlarr Plugin)
 
+## [v0.5.1](https://github.com/buildarr/buildarr-prowlarr/releases/tag/v0.5.1) - 2023-12-02
+
+This release adds the following new features:
+
+* Support defining a URL base for the Prowlarr instance in the Buildarr configuration, using the `url_base` host configuration attribute.
+    * This allows Prowlarr instances with APIs available under a custom path (e.g. `http://localhost:9696/prowlarr`) to be managed by Buildarr.
+* Add support for auto-fetching the Prowlarr API key when dumping instance configurations, by pressing the Enter key without specifying an API key when prompted.
+    * This brings the Prowlarr plugin in line with other Buildarr plugins which already support this.
+* Add support for auto-fetching the Prowlarr API key from newer versions of Prowlarr which use the `initialize.json` endpoint.
+
+The following issues have also been fixed:
+
+* Use the Buildarr-global API request timeout setting as the timeout for Prowlarr API requests, instead of not using a timeout.
+
+### Changed
+
+* Add Prowlarr instance URL base support ([#54](https://github.com/buildarr/buildarr-prowlarr/pull/54))
+
+
 ## [v0.5.0](https://github.com/buildarr/buildarr-prowlarr/releases/tag/v0.5.0) - 2023-11-12
 
 This updates the Prowlarr plugin so that it is compatible with [Buildarr v0.7.0](https://buildarr.github.io/release-notes/#v070-2023-11-12).
