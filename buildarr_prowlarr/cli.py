@@ -58,7 +58,10 @@ def prowlarr():
     "--api-key",
     "api_key",
     metavar="API-KEY",
-    default=functools.partial(getpass, "Prowlarr instance API key: "),
+    default=functools.partial(
+        getpass,
+        "Prowlarr instance API key (or leave blank to auto-fetch): ",
+    ),
     help="API key of the Prowlarr instance. The user will be prompted if undefined.",
 )
 def dump_config(url: Url, api_key: str) -> int:
@@ -75,24 +78,27 @@ def dump_config(url: Url, api_key: str) -> int:
         if len(hostname_port) == HOSTNAME_PORT_TUPLE_LENGTH
         else (443 if protocol == "https" else 80)
     )
+    url_base = url.path
+
+    instance_config = ProwlarrInstanceConfig(
+        **{  # type: ignore[arg-type]
+            "hostname": hostname,
+            "port": port,
+            "protocol": protocol,
+            "url_base": url_base,
+        },
+    )
 
     click.echo(
         ProwlarrManager()
         .from_remote(
-            instance_config=ProwlarrInstanceConfig(
-                **{  # type: ignore[arg-type]
-                    "hostname": hostname,
-                    "port": port,
-                    "protocol": protocol,
-                },
-            ),
-            secrets=ProwlarrSecrets(
-                **{  # type: ignore[arg-type]
-                    "hostname": hostname,
-                    "port": port,
-                    "protocol": protocol,
-                    "api_key": api_key,
-                },
+            instance_config=instance_config,
+            secrets=ProwlarrSecrets.get_from_url(
+                hostname=hostname,
+                port=port,
+                protocol=protocol,
+                url_base=url_base,
+                api_key=api_key if api_key else None,
             ),
         )
         .yaml(),

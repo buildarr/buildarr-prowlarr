@@ -21,13 +21,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
-import prowlarr
-
 from buildarr.config import ConfigPlugin
 from buildarr.types import NonEmptyStr, Port
+from pydantic import validator
 from typing_extensions import Self
 
-from ..api import prowlarr_api_client
 from ..types import ArrApiKey, ProwlarrProtocol
 from .settings import ProwlarrSettings
 
@@ -116,6 +114,18 @@ class ProwlarrInstanceConfig(_ProwlarrInstanceConfig):
     * `https`
     """
 
+    url_base: Optional[str] = None
+    """
+    The URL path the Prowlarr instance API is available under, if behind a reverse proxy.
+
+    API URLs are rendered like this: `<protocol>://<hostname>:<port><url_base>/api/v1/...`
+
+    When unset, the URL root will be used as the API endpoint
+    (e.g. `<protocol>://<hostname>:<port>/api/v1/...`).
+
+    *Added in version 0.5.1.*
+    """
+
     api_key: Optional[ArrApiKey] = None
     """
     API key to use to authenticate with the Prowlarr instance.
@@ -144,16 +154,18 @@ class ProwlarrInstanceConfig(_ProwlarrInstanceConfig):
     Configuration options for Prowlarr itself are set within this structure.
     """
 
+    @validator("url_base")
+    def validate_url_base(cls, value: Optional[str]) -> Optional[str]:
+        return f"/{value.strip('/')}" if value and value.strip("/") else None
+
     @classmethod
     def from_remote(cls, secrets: ProwlarrSecrets) -> Self:
-        with prowlarr_api_client(secrets=secrets) as api_client:
-            version = prowlarr.SystemApi(api_client).get_system_status().version
         return cls(
             hostname=secrets.hostname,
             port=secrets.port,
             protocol=secrets.protocol,
             api_key=secrets.api_key,
-            version=version,
+            version=secrets.version,
             settings=ProwlarrSettings.from_remote(secrets),
         )
 
