@@ -1,5 +1,25 @@
 # Release Notes (Buildarr Prowlarr Plugin)
 
+## [v0.5.2](https://github.com/buildarr/buildarr-prowlarr/releases/tag/v0.5.2) - 2024-04-26
+
+This release contains mitigations for an issue where on newer versions of Prowlarr,
+secret values are obfuscated in API responses to avoid exposing them on insecure applications.
+
+In the best case scenario, they cause Buildarr to always re-apply the configuration for a resource,
+as they always report as "changed".
+In the worst case scenario, the obfuscated values violate strict value constraints set in Buildarr,
+causing errors to occur when fetching remote instance configurations.
+
+The fixes in this release resolve this worst case scenario.
+
+A more permanent fix for handling this problem in general
+is planned for future releases of Buildarr.
+
+### Changed
+
+* Loosen secret value constraints ([#61](https://github.com/buildarr/buildarr-prowlarr/pull/61))
+
+
 ## [v0.5.1](https://github.com/buildarr/buildarr-prowlarr/releases/tag/v0.5.1) - 2023-12-02
 
 This release adds the following new features:
