@@ -25,7 +25,7 @@ from typing import Any, Dict, List, Literal, Mapping, Optional, Set, Tuple, Unio
 import prowlarr
 
 from buildarr.config import RemoteMapEntry
-from buildarr.types import BaseEnum, NonEmptyStr, Password, Port
+from buildarr.types import BaseEnum, NonEmptyStr, Port
 from pydantic import Field, SecretStr
 from typing_extensions import Self
 
@@ -264,7 +264,7 @@ class SecurityGeneralSettings(GeneralSettings):
     Requires a restart of Prowlarr to take effect.
     """
 
-    password: Optional[Password] = None
+    password: Optional[SecretStr] = None
     """
     Password for the administrator user. Required if authentication is enabled.
 
@@ -356,7 +356,7 @@ class ProxyGeneralSettings(GeneralSettings):
     Only enter if authentication is required by the proxy.
     """
 
-    password: Optional[Password] = None
+    password: Optional[SecretStr] = None
     """
     Password for the proxy user.
     Only enter if authentication is required by the proxy.

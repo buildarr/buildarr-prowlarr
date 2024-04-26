@@ -32,7 +32,6 @@ from typing_extensions import Annotated, Self
 
 from ....api import prowlarr_api_client
 from ....secrets import ProwlarrSecrets
-from ....types import ArrApiKey
 from ...types import ProwlarrConfigBase
 
 logger = getLogger(__name__)
@@ -289,7 +288,7 @@ class LidarrApplication(Application):
     Type value associated with this kind of application.
     """
 
-    api_key: ArrApiKey
+    api_key: Password
     """
     API key used to access the target instance.
     """
@@ -355,7 +354,7 @@ class RadarrApplication(Application):
     a Buildarr-defined Radarr instance to this Prowlarr instance.
     """
 
-    api_key: Optional[ArrApiKey] = None
+    api_key: Optional[SecretStr] = None
     """
     API key used to access the target Radarr instance.
 
@@ -411,7 +410,7 @@ class ReadarrApplication(Application):
     Type value associated with this kind of application.
     """
 
-    api_key: ArrApiKey
+    api_key: Password
     """
     API key used to access the target instance.
     """
@@ -455,7 +454,7 @@ class SonarrApplication(Application):
     a Buildarr-defined Sonarr instance to this Prowlarr instance.
     """
 
-    api_key: Optional[ArrApiKey] = None
+    api_key: Optional[SecretStr] = None
     """
     API key used to access the target Sonarr instance.
 
@@ -546,7 +545,7 @@ class WhisparrApplication(Application):
     Type value associated with this kind of application.
     """
 
-    api_key: ArrApiKey
+    api_key: Password
     """
     API key used to access the target instance.
     """

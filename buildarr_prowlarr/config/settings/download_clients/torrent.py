@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Literal, Mapping, Optional, Set
 
 from buildarr.config import RemoteMapEntry
 from buildarr.types import BaseEnum, LowerCaseNonEmptyStr, NonEmptyStr, Password, Port
-from pydantic import validator
+from pydantic import SecretStr, validator
 
 from .base import DownloadClient
 
@@ -1002,7 +1002,7 @@ class TransmissionDownloadClientBase(TorrentDownloadClient):
     User name to use when authenticating with the download client, if required.
     """
 
-    password: Optional[Password] = None
+    password: Optional[SecretStr] = None
     """
     Password to use to authenticate the download client user, if required.
     """
