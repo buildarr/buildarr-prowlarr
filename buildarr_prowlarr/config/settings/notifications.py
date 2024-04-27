@@ -1158,12 +1158,12 @@ class PushoverNotification(Notification):
     Type value associated with this kind of connection.
     """
 
-    user_key: Annotated[SecretStr, Field(min_length=30, max_length=30)]
+    user_key: SecretStr
     """
     User key to use to authenticate with your Pushover account.
     """
 
-    api_key: Annotated[SecretStr, Field(min_length=30, max_length=30)]
+    api_key: SecretStr
     """
     API key assigned to Prowlarr in Pushover.
     """
