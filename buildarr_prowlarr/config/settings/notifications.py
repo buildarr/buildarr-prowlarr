@@ -27,7 +27,7 @@ import prowlarr
 from buildarr.config import RemoteMapEntry
 from buildarr.types import BaseEnum, NonEmptyStr, Password, Port
 from packaging.version import Version
-from pydantic import AnyHttpUrl, ConstrainedInt, Field, NameEmail, SecretStr
+from pydantic import AnyHttpUrl, ConstrainedInt, Field, NameEmail, SecretStr, validator
 from typing_extensions import Annotated, Self
 
 from ...api import prowlarr_api_client
@@ -75,9 +75,9 @@ class OnImportField(BaseEnum):
 
 
 class EmailUseEncryption(BaseEnum):
-    always = (0, True)
+    always = 0
     preferred = 1
-    never = (2, False)
+    never = 2
 
 
 class GotifyPriority(BaseEnum):
@@ -768,6 +768,14 @@ class EmailNotification(Notification):
     """
 
     _implementation: str = "Email"
+
+    @validator("use_encryption", pre=True)
+    def validate_use_encryption(cls, value: Any) -> EmailUseEncryption:
+        if value is True:
+            return EmailUseEncryption.always
+        if value is False:
+            return EmailUseEncryption.never
+        return value
 
     @classmethod
     def _get_remote_map(
