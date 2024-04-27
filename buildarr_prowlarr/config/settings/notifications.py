@@ -1158,12 +1158,12 @@ class PushoverNotification(Notification):
     Type value associated with this kind of connection.
     """
 
-    user_key: SecretStr
+    user_key: Password
     """
     User key to use to authenticate with your Pushover account.
     """
 
-    api_key: SecretStr
+    api_key: Password
     """
     API key assigned to Prowlarr in Pushover.
     """
