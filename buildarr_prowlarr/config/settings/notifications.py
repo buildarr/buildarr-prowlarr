@@ -26,6 +26,7 @@ import prowlarr
 
 from buildarr.config import RemoteMapEntry
 from buildarr.types import BaseEnum, NonEmptyStr, Password, Port
+from packaging.version import Version
 from pydantic import AnyHttpUrl, ConstrainedInt, Field, NameEmail, SecretStr
 from typing_extensions import Annotated, Self
 
@@ -71,6 +72,12 @@ class OnImportField(BaseEnum):
     release = 10
     poster = 11
     fanart = 12
+
+
+class EmailUseEncryption(BaseEnum):
+    always = (0, True)
+    preferred = 1
+    never = (2, False)
 
 
 class GotifyPriority(BaseEnum):
@@ -237,6 +244,7 @@ class Notification(ProwlarrConfigBase):
     @classmethod
     def _get_base_remote_map(
         cls,
+        secrets: ProwlarrSecrets,
         tag_ids: Mapping[str, int],
     ) -> List[RemoteMapEntry]:
         return [
@@ -253,7 +261,20 @@ class Notification(ProwlarrConfigBase):
         ]
 
     @classmethod
-    def _from_remote(cls, tag_ids: Mapping[str, int], remote_attrs: Mapping[str, Any]) -> Self:
+    def _get_remote_map(
+        cls,
+        secrets: ProwlarrSecrets,
+        tag_ids: Mapping[str, int],
+    ) -> List[RemoteMapEntry]:
+        return cls._remote_map
+
+    @classmethod
+    def _from_remote(
+        cls,
+        secrets: ProwlarrSecrets,
+        tag_ids: Mapping[str, int],
+        remote_attrs: Mapping[str, Any],
+    ) -> Self:
         return cls(
             notification_triggers=NotificationTriggers(
                 **NotificationTriggers.get_local_attrs(
@@ -262,7 +283,10 @@ class Notification(ProwlarrConfigBase):
                 ),
             ),
             **cls.get_local_attrs(
-                remote_map=cls._get_base_remote_map(tag_ids) + cls._remote_map,
+                remote_map=(
+                    cls._get_base_remote_map(secrets=secrets, tag_ids=tag_ids)
+                    + cls._get_remote_map(secrets=secrets, tag_ids=tag_ids)
+                ),
                 remote_attrs=remote_attrs,
             ),
         )
@@ -294,7 +318,10 @@ class Notification(ProwlarrConfigBase):
             ),
             **self.get_create_remote_attrs(
                 tree=tree,
-                remote_map=self._get_base_remote_map(tag_ids) + self._remote_map,
+                remote_map=(
+                    self._get_base_remote_map(secrets=secrets, tag_ids=tag_ids)
+                    + self._get_remote_map(secrets=secrets, tag_ids=tag_ids)
+                ),
             ),
         }
         field_values: Dict[str, Any] = {
@@ -330,7 +357,10 @@ class Notification(ProwlarrConfigBase):
         base_updated, updated_base_attrs = self.get_update_remote_attrs(
             tree=tree,
             remote=remote,
-            remote_map=self._get_base_remote_map(tag_ids) + self._remote_map,
+            remote_map=(
+                self._get_base_remote_map(secrets=secrets, tag_ids=tag_ids)
+                + self._get_remote_map(secrets=secrets, tag_ids=tag_ids)
+            ),
         )
         if triggers_updated or base_updated:
             api_schema = self._get_api_schema(api_notification_schemas)
@@ -678,7 +708,7 @@ class EmailNotification(Notification):
     The default is to use STARTTLS on the standard SMTP submission port.
     """
 
-    use_encryption: bool = True
+    use_encryption: EmailUseEncryption = EmailUseEncryption.always
     """
     Whether or not to use encryption when sending mail to the SMTP server.
 
@@ -686,6 +716,20 @@ class EmailNotification(Notification):
     Any other port number will result in STARTTLS being used.
 
     The default is to enable encryption.
+
+    !!! note
+
+        Outright disabling encryption is available from Prowlarr v1.13 onwards.
+        If this option is set to `never` on an older version, it will have the same
+        effect as setting it to `preferred`.
+
+    Values:
+
+    * `always`/`true` - Enforce encryption
+    * `preferred` - Prefer encryption, but allow unencrypted
+    * `never`/`false` - Do not use encryption
+
+    *Changed in version 0.5.3*: Add support for the `always`, `preferred` and `never` values.
     """
 
     username: NonEmptyStr
@@ -724,17 +768,27 @@ class EmailNotification(Notification):
     """
 
     _implementation: str = "Email"
-    _remote_map: List[RemoteMapEntry] = [
-        ("server", "server", {"is_field": True}),
-        ("port", "port", {"is_field": True}),
-        ("use_encryption", "requireEncryption", {"is_field": True}),
-        ("username", "username", {"is_field": True}),
-        ("password", "password", {"is_field": True}),
-        ("from_address", "from", {"is_field": True}),
-        ("recipient_addresses", "to", {"is_field": True}),
-        ("cc_addresses", "cc", {"is_field": True}),
-        ("bcc_addresses", "bcc", {"is_field": True}),
-    ]
+
+    @classmethod
+    def _get_remote_map(
+        cls,
+        secrets: ProwlarrSecrets,
+        tag_ids: Mapping[str, int],
+    ) -> List[RemoteMapEntry]:
+        remote_map: List[RemoteMapEntry] = [
+            ("server", "server", {"is_field": True}),
+            ("port", "port", {"is_field": True}),
+            ("username", "username", {"is_field": True}),
+            ("password", "password", {"is_field": True}),
+            ("from_address", "from", {"is_field": True}),
+            ("recipient_addresses", "to", {"is_field": True}),
+            ("cc_addresses", "cc", {"is_field": True}),
+            ("bcc_addresses", "bcc", {"is_field": True}),
+        ]
+        # https://github.com/Prowlarr/Prowlarr/releases/tag/v1.13.1.4243
+        if Version(secrets.version) >= Version("1.13.1.4243"):
+            remote_map.append(("use_encryption", "requireEncryption", {"is_field": True}))
+        return remote_map
 
 
 class GotifyNotification(Notification):

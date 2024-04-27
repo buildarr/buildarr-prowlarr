@@ -296,6 +296,7 @@ class ArrApplication(Application):
             api_schema=api_schema,
             tag_ids=tag_ids,
         )
+        # https://github.com/Prowlarr/Prowlarr/releases/tag/v1.15.0.4361
         if Version(secrets.version) >= Version("1.15.0.4361"):
             remote_map.append(
                 (
