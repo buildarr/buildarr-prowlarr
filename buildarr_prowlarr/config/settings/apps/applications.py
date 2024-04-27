@@ -279,7 +279,7 @@ class ArrApplication(Application):
     for some indexers, enabling this will allow it to be rejected after the torrent is grabbed,
     but before it is sent to the client.
 
-    Only supported in Prowlarr v1.15 and above.
+    Available in Prowlarr v1.15 and above.
 
     *New in version 0.5.3.*
     """
@@ -755,6 +755,7 @@ class ApplicationsSettings(ProwlarrConfigBase):
                 api_application.name: APPLICATION_TYPE_MAP[  # type: ignore[attr-defined]
                     api_application.implementation
                 ]._from_remote(
+                    secrets=secrets,
                     api_schema=api_application_schemas[api_application.implementation],
                     tag_ids=tag_ids,
                     remote_attrs=api_application.to_dict(),
