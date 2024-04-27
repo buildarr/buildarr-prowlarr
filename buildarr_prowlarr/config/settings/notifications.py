@@ -715,11 +715,11 @@ class EmailNotification(Notification):
     If the port number is set to 465, SMTPS (implicit TLS) will be used.
     Any other port number will result in STARTTLS being used.
 
-    The default is to enable encryption.
+    The default is to enforce encryption.
 
     !!! note
 
-        Outright disabling encryption is available from Prowlarr v1.13 onwards.
+        Disabling encryption is available from Prowlarr v1.13 onwards.
         If this option is set to `never` on an older version, it will have the same
         effect as setting it to `preferred`.
 
@@ -727,7 +727,7 @@ class EmailNotification(Notification):
 
     * `always`/`true` - Enforce encryption
     * `preferred` - Prefer encryption, but allow unencrypted
-    * `never`/`false` - Do not use encryption
+    * `never`/`false` - Disable encryption
 
     *Changed in version 0.5.3*: Add support for the `always`, `preferred` and `never` values.
     """
