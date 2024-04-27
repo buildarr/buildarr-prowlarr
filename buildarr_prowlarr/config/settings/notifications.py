@@ -719,7 +719,7 @@ class EmailNotification(Notification):
 
     !!! note
 
-        Disabling encryption is available from Prowlarr v1.13 onwards.
+        Disabling encryption is available in Prowlarr v1.13 and above.
         If this option is set to `never` on an older version, it will have the same
         effect as setting it to `preferred`.
 
@@ -729,7 +729,7 @@ class EmailNotification(Notification):
     * `preferred` - Prefer encryption, but allow unencrypted
     * `never`/`false` - Disable encryption
 
-    *Changed in version 0.5.3*: Add support for the `always`, `preferred` and `never` values.
+    *Changed in version 0.5.3*: Added support for the `always`, `preferred` and `never` values.
     """
 
     username: NonEmptyStr
