@@ -770,7 +770,7 @@ class EmailNotification(Notification):
     _implementation: str = "Email"
 
     @validator("use_encryption", pre=True)
-    def validate_use_encryption(cls, value: Any) -> EmailUseEncryption:
+    def validate_use_encryption(cls, value: Union[bool, str]) -> Union[str, EmailUseEncryption]:
         if value is True:
             return EmailUseEncryption.always
         if value is False:
@@ -793,7 +793,11 @@ class EmailNotification(Notification):
                 else (
                     "use_encryption",
                     "requireEncryption",
-                    {"is_field": True, "encoder": lambda v: v == EmailUseEncryption.always},
+                    {
+                        "is_field": True,
+                        "decoder": lambda v: 0 if v else 1,
+                        "encoder": lambda v: v == EmailUseEncryption.always,
+                    },
                 )
             ),
             ("username", "username", {"is_field": True}),
@@ -1527,6 +1531,7 @@ class ProwlarrNotificationsSettings(ProwlarrConfigBase):
                 api_notification.name: NOTIFICATION_TYPE_MAP[  # type: ignore[attr-defined]
                     api_notification.implementation.lower()
                 ]._from_remote(
+                    secrets=secrets,
                     tag_ids=tag_ids,
                     remote_attrs=api_notification.to_dict(),
                 )
