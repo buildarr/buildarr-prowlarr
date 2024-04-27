@@ -27,6 +27,7 @@ import prowlarr
 from buildarr.config import RemoteMapEntry
 from buildarr.state import state
 from buildarr.types import BaseEnum, InstanceName, LowerCaseNonEmptyStr, NonEmptyStr, Password
+from packaging.version import Version
 from pydantic import AnyHttpUrl, Field, SecretStr, validator
 from typing_extensions import Annotated, Self
 
@@ -102,6 +103,7 @@ class Application(ProwlarrConfigBase):
     @classmethod
     def _get_base_remote_map(
         cls,
+        secrets: ProwlarrSecrets,
         api_schema: prowlarr.ApplicationResource,
         tag_ids: Mapping[str, int],
     ) -> List[RemoteMapEntry]:
@@ -129,6 +131,15 @@ class Application(ProwlarrConfigBase):
                 },
             ),
         ]
+
+    @classmethod
+    def _get_remote_map(
+        cls,
+        secrets: ProwlarrSecrets,
+        api_schema: prowlarr.ApplicationResource,
+        tag_ids: Mapping[str, int],
+    ) -> List[RemoteMapEntry]:
+        return cls._remote_map
 
     @classmethod
     def _get_sync_category_options(
@@ -170,13 +181,17 @@ class Application(ProwlarrConfigBase):
     @classmethod
     def _from_remote(
         cls,
+        secrets: ProwlarrSecrets,
         api_schema: prowlarr.ApplicationResource,
         tag_ids: Mapping[str, int],
         remote_attrs: Mapping[str, Any],
     ) -> Self:
         return cls(
             **cls.get_local_attrs(
-                remote_map=cls._get_base_remote_map(api_schema, tag_ids) + cls._remote_map,
+                remote_map=(
+                    cls._get_base_remote_map(secrets, api_schema, tag_ids)
+                    + cls._get_remote_map(secrets, api_schema, tag_ids)
+                ),
                 remote_attrs=remote_attrs,
             ),
         )
@@ -195,7 +210,10 @@ class Application(ProwlarrConfigBase):
         api_schema_dict = api_schema.to_dict()
         set_attrs = self.get_create_remote_attrs(
             tree=tree,
-            remote_map=self._get_base_remote_map(api_schema, tag_ids) + self._remote_map,
+            remote_map=(
+                self._get_base_remote_map(secrets, api_schema, tag_ids)
+                + self._get_remote_map(secrets, api_schema, tag_ids)
+            ),
         )
         field_values: Dict[str, Any] = {
             field["name"]: field["value"] for field in set_attrs["fields"]
@@ -222,7 +240,10 @@ class Application(ProwlarrConfigBase):
         changed, set_attrs = self.get_update_remote_attrs(
             tree=tree,
             remote=remote,
-            remote_map=self._get_base_remote_map(api_schema, tag_ids) + self._remote_map,
+            remote_map=(
+                self._get_base_remote_map(secrets, api_schema, tag_ids)
+                + self._get_remote_map(secrets, api_schema, tag_ids)
+            ),
             set_unchanged=True,
         )
         if changed:
@@ -231,7 +252,8 @@ class Application(ProwlarrConfigBase):
                     field["name"]: field["value"] for field in set_attrs["fields"]
                 }
                 set_attrs["fields"] = [
-                    {**f, "value": field_values[f["name"]]} for f in api_schema.to_dict()["fields"]
+                    ({**f, "value": field_values[f["name"]]} if f["name"] in field_values else f)
+                    for f in api_application.to_dict()["fields"]
                 ]
             remote_attrs = {**api_application.to_dict(), **set_attrs}
             with prowlarr_api_client(secrets=secrets) as api_client:
@@ -245,6 +267,44 @@ class Application(ProwlarrConfigBase):
     def _delete_remote(self, secrets: ProwlarrSecrets, application_id: int) -> None:
         with prowlarr_api_client(secrets=secrets) as api_client:
             prowlarr.ApplicationApi(api_client).delete_applications(id=application_id)
+
+
+class ArrApplication(Application):
+    sync_reject_blocklisted_torrent_hashes: bool = False
+    """
+    Enable syncing the "Reject Blocklisted Torrent Hashes While Grabbing"
+    indexer option to the target application.
+
+    If a torrent is blocked by hash it may not properly be rejected during RSS/Search
+    for some indexers, enabling this will allow it to be rejected after the torrent is grabbed,
+    but before it is sent to the client.
+
+    Only supported in Prowlarr v1.15 and above.
+
+    *New in version 0.5.3.*
+    """
+
+    @classmethod
+    def _get_base_remote_map(
+        cls,
+        secrets: ProwlarrSecrets,
+        api_schema: prowlarr.ApplicationResource,
+        tag_ids: Mapping[str, int],
+    ) -> List[RemoteMapEntry]:
+        remote_map = super()._get_base_remote_map(
+            secrets=secrets,
+            api_schema=api_schema,
+            tag_ids=tag_ids,
+        )
+        if Version(secrets.version) >= Version("1.15.0.4361"):
+            remote_map.append(
+                (
+                    "sync_reject_blocklisted_torrent_hashes",
+                    "syncRejectBlocklistedTorrentHashesWhileGrabbing",
+                    {"is_field": True},
+                ),
+            )
+        return remote_map
 
 
 class LazylibrarianApplication(Application):
@@ -278,7 +338,7 @@ class LazylibrarianApplication(Application):
     _remote_map: List[RemoteMapEntry] = [("api_key", "apiKey", {"is_field": True})]
 
 
-class LidarrApplication(Application):
+class LidarrApplication(ArrApplication):
     """
     Add a [Lidarr](https://lidarr.audio) instance to sync with Prowlarr.
     """
@@ -332,7 +392,7 @@ class MylarApplication(Application):
     _remote_map: List[RemoteMapEntry] = [("api_key", "apiKey", {"is_field": True})]
 
 
-class RadarrApplication(Application):
+class RadarrApplication(ArrApplication):
     """
     Add a [Radarr](https://radarr.video) instance to sync with Prowlarr.
 
@@ -400,7 +460,7 @@ class RadarrApplication(Application):
         return self
 
 
-class ReadarrApplication(Application):
+class ReadarrApplication(ArrApplication):
     """
     Add a [Readarr](https://readarr.com) instance to sync with Prowlarr.
     """
@@ -432,7 +492,7 @@ class ReadarrApplication(Application):
     _remote_map: List[RemoteMapEntry] = [("api_key", "apiKey", {"is_field": True})]
 
 
-class SonarrApplication(Application):
+class SonarrApplication(ArrApplication):
     """
     Add a [Sonarr](https://sonarr.tv) instance to sync with Prowlarr.
 
@@ -501,13 +561,13 @@ class SonarrApplication(Application):
         return value
 
     @classmethod
-    def _get_base_remote_map(
+    def _get_remote_map(
         cls,
+        secrets: ProwlarrSecrets,
         api_schema: prowlarr.ApplicationResource,
         tag_ids: Mapping[str, int],
     ) -> List[RemoteMapEntry]:
         return [
-            *super()._get_base_remote_map(api_schema, tag_ids),
             ("api_key", "apiKey", {"is_field": True}),
             (
                 "anime_sync_categories",
@@ -535,7 +595,7 @@ class SonarrApplication(Application):
         return self
 
 
-class WhisparrApplication(Application):
+class WhisparrApplication(ArrApplication):
     """
     Add a [Whisparr](https://github.com/Whisparr/Whisparr) instance to sync with Prowlarr.
     """

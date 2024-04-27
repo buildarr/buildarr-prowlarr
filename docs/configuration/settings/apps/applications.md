@@ -34,6 +34,7 @@
         - type
         - api_key
         - sync_categories
+        - sync_reject_blocklisted_torrent_hashes
 
 ## Mylar
 
@@ -53,6 +54,7 @@
         - instance_name
         - api_key
         - sync_categories
+        - sync_reject_blocklisted_torrent_hashes
 
 ## Readarr
 
@@ -62,6 +64,7 @@
         - type
         - api_key
         - sync_categories
+        - sync_reject_blocklisted_torrent_hashes
 
 ## Sonarr
 
@@ -74,6 +77,7 @@
         - sync_categories
         - anime_sync_categories
         - sync_anime_standard_format_search
+        - sync_reject_blocklisted_torrent_hashes
 
 ## Whisparr
 
@@ -83,3 +87,4 @@
         - type
         - api_key
         - sync_categories
+        - sync_reject_blocklisted_torrent_hashes

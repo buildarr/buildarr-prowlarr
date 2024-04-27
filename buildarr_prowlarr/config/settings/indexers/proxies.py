@@ -157,8 +157,8 @@ class Proxy(ProwlarrConfigBase):
                     field["name"]: field["value"] for field in set_attrs["fields"]
                 }
                 set_attrs["fields"] = [
-                    {**f, "value": field_values[f["name"]]}
-                    for f in self._get_api_schema(api_proxy_schemas)["fields"]
+                    ({**f, "value": field_values[f["name"]]} if f["name"] in field_values else f)
+                    for f in api_proxy.to_dict()["fields"]
                 ]
             remote_attrs = {**api_proxy.to_dict(), **set_attrs}
             with prowlarr_api_client(secrets=secrets) as api_client:
