@@ -775,9 +775,19 @@ class EmailNotification(Notification):
         secrets: ProwlarrSecrets,
         tag_ids: Mapping[str, int],
     ) -> List[RemoteMapEntry]:
-        remote_map: List[RemoteMapEntry] = [
+        return [
             ("server", "server", {"is_field": True}),
             ("port", "port", {"is_field": True}),
+            (
+                # https://github.com/Prowlarr/Prowlarr/releases/tag/v1.13.1.4243
+                ("use_encryption", "useEncryption", {"is_field": True})
+                if Version(secrets.version) >= Version("1.13.1.4243")
+                else (
+                    "use_encryption",
+                    "requireEncryption",
+                    {"is_field": True, "encoder": lambda v: v == EmailUseEncryption.always},
+                )
+            ),
             ("username", "username", {"is_field": True}),
             ("password", "password", {"is_field": True}),
             ("from_address", "from", {"is_field": True}),
@@ -785,10 +795,6 @@ class EmailNotification(Notification):
             ("cc_addresses", "cc", {"is_field": True}),
             ("bcc_addresses", "bcc", {"is_field": True}),
         ]
-        # https://github.com/Prowlarr/Prowlarr/releases/tag/v1.13.1.4243
-        if Version(secrets.version) >= Version("1.13.1.4243"):
-            remote_map.append(("use_encryption", "requireEncryption", {"is_field": True}))
-        return remote_map
 
 
 class GotifyNotification(Notification):
