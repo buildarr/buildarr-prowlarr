@@ -58,7 +58,6 @@
         - instance_name
         - api_key
         - sync_categories
-        - sync_reject_blocklisted_torrent_hashes
 
 ##### ::: buildarr_prowlarr.config.settings.apps.applications.ArrApplication
     options:
@@ -73,7 +72,6 @@
         - type
         - api_key
         - sync_categories
-        - sync_reject_blocklisted_torrent_hashes
 
 ##### ::: buildarr_prowlarr.config.settings.apps.applications.ArrApplication
     options:
@@ -91,7 +89,6 @@
         - sync_categories
         - anime_sync_categories
         - sync_anime_standard_format_search
-        - sync_reject_blocklisted_torrent_hashes
 
 ##### ::: buildarr_prowlarr.config.settings.apps.applications.ArrApplication
     options:
@@ -106,7 +103,6 @@
         - type
         - api_key
         - sync_categories
-        - sync_reject_blocklisted_torrent_hashes
 
 ##### ::: buildarr_prowlarr.config.settings.apps.applications.ArrApplication
     options:
