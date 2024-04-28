@@ -1,5 +1,24 @@
 # Release Notes (Buildarr Prowlarr Plugin)
 
+## [v0.5.3](https://github.com/buildarr/buildarr-prowlarr/releases/tag/v0.5.2) - 2024-04-29
+
+This release contains fixes for issues resulting from backward-incompatible changes to the Prowlarr API.
+
+* Add the `sync_reject_blocklisted_torrent_hashes` attribute to the Lidarr, Radarr, Readarr, Sonarr and Whisparr application definitions (available in Prowlarr v1.15 and above).
+* Add the `always`, `preferred` and `never` options to the `use_encryption` attribute on email notification connections.
+    * In version 0.5.2 and below of the plugin, `true` and `false` values were used when defining this attribute. In older versions of Prowlarr, these values used to correspond to `always` and `preferred`, respectively. `true` and `false` can still be used, but in newer versions of Prowlarr, `false` now corresponds to `never`.
+    * `never` is available in Prowlarr v1.13 and above. If `never` is selected on an older version, it will result in `preferred` being used.
+* Make sure the Prowlarr plugin does not raise an error when new (unimplemented) resource attributes are found, and instead ensure they are passed through without modification. This ensures that backwards-compatible API additions do not cause any problems when using Buildarr with newer versions of Prowlarr.
+
+In addition, the following issues were resolved:
+
+* Loosen Pushover user/API key constraints, to allow Pushover notification connections to be managed following the change to Prowlarr to obfuscate secret values in API responses.
+
+### Changed
+
+* Fix compatibility with newer versions of Prowlarr ([#66](https://github.com/buildarr/buildarr-prowlarr/pull/66))
+
+
 ## [v0.5.2](https://github.com/buildarr/buildarr-prowlarr/releases/tag/v0.5.2) - 2024-04-26
 
 This release contains mitigations for an issue where on newer versions of Prowlarr,
