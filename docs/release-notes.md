@@ -1,6 +1,6 @@
 # Release Notes (Buildarr Prowlarr Plugin)
 
-## [v0.5.3](https://github.com/buildarr/buildarr-prowlarr/releases/tag/v0.5.2) - 2024-04-29
+## [v0.5.3](https://github.com/buildarr/buildarr-prowlarr/releases/tag/v0.5.3) - 2024-04-29
 
 This release contains fixes for issues resulting from backward-incompatible changes to the Prowlarr API.
 
