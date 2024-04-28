@@ -12,7 +12,7 @@ This release contains fixes for issues resulting from backward-incompatible chan
 
 In addition, the following issues were resolved:
 
-* Loosen Pushover user/API key constraints, to allow Pushover notification connections to be managed following the change to Prowlarr to obfuscate secret values in API responses.
+* Loosen Pushover user/secret key constraints, to allow Pushover notification connections to be managed following the change to Prowlarr to obfuscate secret values in API responses.
 
 ### Changed
 
